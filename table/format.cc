@@ -3,6 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "table/format.h"
+#include "table/compression/compressor_factory.h"
 
 #include "leveldb/env.h"
 #include "port/port.h"
@@ -94,45 +95,42 @@ Status ReadBlock(RandomAccessFile* file, const ReadOptions& options,
     }
   }
 
-  switch (data[n]) {
-    case kNoCompression:
-      if (data != buf) {
-        // File implementation gave us pointer to some other data.
-        // Use it directly under the assumption that it will be live
-        // while the file is open.
-        delete[] buf;
-        result->data = Slice(data, n);
-        result->heap_allocated = false;
-        result->cachable = false;  // Do not double-cache
-      } else {
-        result->data = Slice(buf, n);
-        result->heap_allocated = true;
-        result->cachable = true;
-      }
-
-      // Ok
-      break;
-    case kSnappyCompression: {
-      size_t ulength = 0;
-      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
-        delete[] buf;
-        return Status::Corruption("corrupted compressed block contents");
-      }
-      char* ubuf = new char[ulength];
-      if (!port::Snappy_Uncompress(data, n, ubuf)) {
-        delete[] buf;
-        delete[] ubuf;
-        return Status::Corruption("corrupted compressed block contents");
-      }
+  if (data[n] == kNoCompression) {
+    if (data != buf) {
+      // File implementation gave us pointer to some other data.
+      // Use it directly under the assumption that it will be live
+      // while the file is open.
       delete[] buf;
-      result->data = Slice(ubuf, ulength);
+      result->data = Slice(data, n);
+      result->heap_allocated = false;
+      result->cachable = false;  // Do not double-cache
+    } else {
+      result->data = Slice(buf, n);
       result->heap_allocated = true;
       result->cachable = true;
-      break;
     }
-    default:
+  } else {
+    auto compressor =
+        CompressorFactory::GetCompressor(static_cast<CompressionType>(data[n]));
+
+    if (!compressor) {
       delete[] buf;
-      return Status::Corruption("bad block type");
+      return Status::Corruption("unknown block compression type");
+    }
+
+    std::string buffer;
+
+    if (!compressor->decompress(data, n, buffer)) {
+      delete[] buf;
+      return Status::Corruption("corrupted compressed block contents");
+    }
+
+    delete[] buf;
+    auto ubuf = new char[buffer.size()];
+    memcpy(ubuf, buffer.data(), buffer.size());
+    result->data = Slice(ubuf, buffer.size());
+    result->heap_allocated = true;
+    result->cachable = true;
   }
 
   return Status::OK();

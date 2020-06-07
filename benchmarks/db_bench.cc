@@ -13,6 +13,7 @@
 #include "leveldb/filter_policy.h"
 #include "leveldb/write_batch.h"
 #include "port/port.h"
+#include "table/compression/compressor_factory.h"
 #include "util/crc32c.h"
 #include "util/histogram.h"
 #include "util/mutexlock.h"
@@ -356,11 +357,17 @@ class Benchmark {
 
     // See if snappy is working by attempting to compress a compressible string
     const char text[] = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
-    std::string compressed;
-    if (!port::Snappy_Compress(text, sizeof(text), &compressed)) {
+
+    auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
+    if (!compressor) {
       std::fprintf(stdout, "WARNING: Snappy compression is not enabled\n");
-    } else if (compressed.size() >= sizeof(text)) {
-      std::fprintf(stdout, "WARNING: Snappy compression is not effective\n");
+    } else {
+      std::string compressed;
+      CompressorFactory::GetCompressor(kSnappyCompression)
+          ->compress(text, sizeof(text), compressed);
+      if (compressed.size() >= sizeof(text)) {
+        std::fprintf(stdout, "WARNING: Snappy compression is not effective\n");
+      }
     }
   }
 
@@ -644,12 +651,17 @@ class Benchmark {
     int64_t bytes = 0;
     int64_t produced = 0;
     bool ok = true;
-    std::string compressed;
-    while (ok && bytes < 1024 * 1048576) {  // Compress 1G
-      ok = port::Snappy_Compress(input.data(), input.size(), &compressed);
-      produced += compressed.size();
-      bytes += input.size();
-      thread->stats.FinishedSingleOp();
+    auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
+    if (compressor) {
+      std::string compressed;
+      while (ok && bytes < 1024 * 1048576) {  // Compress 1G
+        compressor->compress(input.data(), input.size(), compressed);
+        produced += compressed.size();
+        bytes += input.size();
+        thread->stats.FinishedSingleOp();
+      }
+    } else {
+      ok = false;
     }
 
     if (!ok) {
@@ -666,17 +678,23 @@ class Benchmark {
   void SnappyUncompress(ThreadState* thread) {
     RandomGenerator gen;
     Slice input = gen.Generate(Options().block_size);
-    std::string compressed;
-    bool ok = port::Snappy_Compress(input.data(), input.size(), &compressed);
+    auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
+    bool ok = true;
     int64_t bytes = 0;
-    char* uncompressed = new char[input.size()];
-    while (ok && bytes < 1024 * 1048576) {  // Compress 1G
-      ok = port::Snappy_Uncompress(compressed.data(), compressed.size(),
-                                   uncompressed);
-      bytes += input.size();
-      thread->stats.FinishedSingleOp();
+    if (compressor) {
+      std::string compressed;
+      compressor->compress(input.data(), input.size(), compressed);
+
+      std::string decompressed;
+      while (ok && bytes < 1024 * 1048576) {  // Compress 1G
+        ok = compressor->decompress(compressed.data(), compressed.size(),
+                                    decompressed);
+        bytes += input.size();
+        thread->stats.FinishedSingleOp();
+      }
+    } else {
+      ok = false;
     }
-    delete[] uncompressed;
 
     if (!ok) {
       thread->stats.AddMessage("(snappy failure)");

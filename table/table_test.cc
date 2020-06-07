@@ -17,6 +17,7 @@
 #include "leveldb/table_builder.h"
 #include "table/block.h"
 #include "table/block_builder.h"
+#include "table/compression/compressor_factory.h"
 #include "table/format.h"
 #include "util/random.h"
 #include "util/testutil.h"
@@ -787,7 +788,11 @@ TEST(TableTest, ApproximateOffsetOfPlain) {
 static bool SnappyCompressionSupported() {
   std::string out;
   Slice in = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-  return port::Snappy_Compress(in.data(), in.size(), &out);
+  auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
+  if (compressor) {
+    compressor->decompress(in.data(), in.size(), out);
+  }
+  return false;
 }
 
 TEST(TableTest, ApproximateOffsetOfCompressed) {

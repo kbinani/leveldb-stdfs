@@ -42,6 +42,11 @@ check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
 check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
 
+find_package(ZLIB)
+if(ZLIB_FOUND)
+  set(HAVE_ZLIB 1)
+endif(ZLIB_FOUND)
+
 include(CheckCXXSymbolExists)
 # Using check_cxx_symbol_exists() instead of check_c_symbol_exists() because
 # we're including the header from C++, and feature detection should use the same
@@ -157,6 +162,15 @@ target_sources(leveldb
     "table/block_builder.h"
     "table/block.cc"
     "table/block.h"
+    "table/compression/compressor.h"
+    "table/compression/compressor_factory.cc"
+    "table/compression/compressor_factory.h"
+    "table/compression/snappy_compressor.cc"
+    "table/compression/snappy_compressor.h"
+    "table/compression/zlib_compressor.cc"
+    "table/compression/zlib_compressor.h"
+    "table/compression/zstd_compressor.cc"
+    "table/compression/zstd_compressor.h"
     "table/filter_block.cc"
     "table/filter_block.h"
     "table/format.cc"
@@ -276,6 +290,13 @@ endif(HAVE_SNAPPY)
 if(HAVE_TCMALLOC)
   target_link_libraries(leveldb tcmalloc)
 endif(HAVE_TCMALLOC)
+if(HAVE_ZLIB)
+  include_directories(${ZLIB_INCLUDE_DIRS})
+  target_link_libraries(leveldb ${ZLIB_LIBRARIES})
+endif(HAVE_ZLIB)
+if(HAVE_ZSTD)
+  target_link_libraries(leveldb zstd)
+endif(HAVE_ZSTD)
 
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)

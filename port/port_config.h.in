@@ -30,4 +30,14 @@
 #cmakedefine01 HAVE_SNAPPY
 #endif  // !defined(HAVE_SNAPPY)
 
+// Define to 1 if you have zlib.
+#if !defined(HAVE_ZLIB)
+#cmakedefine01 HAVE_ZLIB
+#endif  // !defined(HAVE_ZLIB)
+
+// Define to 1 if you have Zstandard.
+#if !defined(HAVE_ZSTD)
+#cmakedefine01 HAVE_ZSTD
+#endif  // !defined(HAVE_ZSTD)
+
 #endif  // STORAGE_LEVELDB_PORT_PORT_CONFIG_H_
