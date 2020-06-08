@@ -701,6 +701,7 @@ class Benchmark {
         compressor->compress(input.data(), input.size(), compressed);
         produced += compressed.size();
         bytes += input.size();
+        compressed.clear();
         thread->stats.FinishedSingleOp();
       }
     } else {
