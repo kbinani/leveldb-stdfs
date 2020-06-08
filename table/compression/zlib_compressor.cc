@@ -11,46 +11,27 @@ namespace leveldb {
 
 void ZlibCompressorBase::compressImpl(const char* input, size_t length,
                                       ::std::string& buffer) const {
-  const size_t BUFSIZE = 128 * 1024;
-  unsigned char temp_buffer[BUFSIZE];
-
   // reserve enough memory to not reallocate on the fly
-  buffer.reserve(buffer.size() + compressBound(length));
+  // TODO: this memsets the whole thing to zero, big waste
+  buffer.resize(compressBound(length));
 
   z_stream strm;
   strm.zalloc = 0;
   strm.zfree = 0;
   strm.next_in = (unsigned char*)(input);
   strm.avail_in = (uint32_t)length;
-  strm.next_out = temp_buffer;
-  strm.avail_out = BUFSIZE;
+  strm.next_out = (unsigned char*)&buffer[0];
+  strm.avail_out = buffer.size();
 
   auto res = deflateInit2(&strm, compressionLevel, Z_DEFLATED, _window(), 8,
                           Z_DEFAULT_STRATEGY);
   assert(res == Z_OK);
 
-  int deflate_res = Z_OK;
-  while (strm.avail_in != 0) {
-    int res = deflate(&strm, Z_NO_FLUSH);
-    assert(res == Z_OK);
-    if (strm.avail_out == 0) {
-      buffer.append(temp_buffer, temp_buffer + BUFSIZE);
-      strm.next_out = temp_buffer;
-      strm.avail_out = BUFSIZE;
-    }
-  }
+  res = deflate(&strm, Z_FINISH);
+  assert(res == Z_STREAM_END);
 
-  while (deflate_res == Z_OK) {
-    if (strm.avail_out == 0) {
-      buffer.append(temp_buffer, temp_buffer + BUFSIZE);
-      strm.next_out = temp_buffer;
-      strm.avail_out = BUFSIZE;
-    }
-    deflate_res = deflate(&strm, Z_FINISH);
-  }
+  buffer.resize(strm.total_out);
 
-  assert(deflate_res == Z_STREAM_END);
-  buffer.append(temp_buffer, temp_buffer + BUFSIZE - strm.avail_out);
   deflateEnd(&strm);
 }
 
