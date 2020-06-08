@@ -11,16 +11,8 @@ namespace leveldb {
 	public:
 
 		uint64_t inputBytes = 0, compressedBytes = 0;
- 
-		//an ID that has to be unique across the whole system
-		const char uniqueCompressionID;
 
         virtual ~Compressor() {}
-        
-		Compressor(char uniqueCompressionID) :
-			uniqueCompressionID(uniqueCompressionID) {
-
-		}
 
 		double getAverageCompression() const
 		{

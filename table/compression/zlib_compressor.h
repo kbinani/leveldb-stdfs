@@ -19,8 +19,7 @@ namespace leveldb {
             
         }
 
-		ZlibCompressorBase(char uniqueCompressionID, int compressionLevel, bool raw) :
-			Compressor(uniqueCompressionID),
+		ZlibCompressorBase(int compressionLevel, bool raw) :
 			compressionLevel(compressionLevel),
 			raw(raw)
 		{
@@ -39,20 +38,16 @@ namespace leveldb {
 
 	class ZlibCompressor : public ZlibCompressorBase {
 	public:
-		static const int SERIALIZE_ID = 2;
-
 		ZlibCompressor(int compressionLevel = -1) :
-			ZlibCompressorBase(SERIALIZE_ID, compressionLevel, false) {
+			ZlibCompressorBase(compressionLevel, false) {
 
 		}
 	};
 
 	class ZlibCompressorRaw : public ZlibCompressorBase {
 	public:
-		static const int SERIALIZE_ID = 4;
-
 		ZlibCompressorRaw(int compressionLevel = -1) :
-			ZlibCompressorBase(SERIALIZE_ID, compressionLevel, true) {
+			ZlibCompressorBase(compressionLevel, true) {
 
 		}
 	};
