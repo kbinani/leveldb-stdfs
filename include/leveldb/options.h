@@ -8,7 +8,6 @@
 #include <cstddef>
 
 #include "leveldb/export.h"
-#include "table/compression/compressor.h"
 
 namespace leveldb {
 
