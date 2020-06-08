@@ -44,4 +44,21 @@ Compressor* CompressorFactory::GetCompressor(CompressionType type) {
       return nullptr;
   }
 }
+
+std::string CompressorFactory::GetCompressorName(CompressionType type) {
+  switch (type) {
+    case kNoCompression:
+      return "none";
+    case kSnappyCompression:
+      return "snappy";
+    case kZlibCompression:
+      return "zlib";
+    case kZstdCompression:
+      return "zstd";
+    case kZlibRawCompression:
+      return "zlib_raw";
+    default:
+      return "unknown";
+  }
+}
 }  // namespace leveldb

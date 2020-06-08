@@ -30,6 +30,7 @@ enum CompressionType {
   kZlibCompression = 0x2,
   kZstdCompression = 0x3,
   kZlibRawCompression = 0x4,
+  NUMBER_OF_COMPRESSORS = 5,
 };
 
 // Options to control the behavior of a database (passed to DB::Open)

@@ -58,7 +58,13 @@ static const char* FLAGS_benchmarks =
     "fill100K,"
     "crc32c,"
     "snappycomp,"
-    "snappyuncomp,";
+    "snappyuncomp,"
+    "zlibcomp,"
+    "zlibuncomp,"
+    "zstdcomp,"
+    "zstduncomp,"
+    "zlibrawcomp,"
+    "zlibrawuncomp,";
 
 // Number of key/values to place in database
 static int FLAGS_num = 1000000;
@@ -322,6 +328,7 @@ class Benchmark {
   WriteOptions write_options_;
   int reads_;
   int heap_counter_;
+  CompressionType compression_type_;
 
   void PrintHeader() {
     const int kKeySize = 16;
@@ -355,18 +362,29 @@ class Benchmark {
         "WARNING: Assertions are enabled; benchmarks unnecessarily slow\n");
 #endif
 
-    // See if snappy is working by attempting to compress a compressible string
+    // See if compressors are working by attempting to compress a compressible
+    // string
     const char text[] = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
-    auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
-    if (!compressor) {
-      std::fprintf(stdout, "WARNING: Snappy compression is not enabled\n");
-    } else {
-      std::string compressed;
-      CompressorFactory::GetCompressor(kSnappyCompression)
-          ->compress(text, sizeof(text), compressed);
-      if (compressed.size() >= sizeof(text)) {
-        std::fprintf(stdout, "WARNING: Snappy compression is not effective\n");
+    for (int i = CompressionType::kNoCompression;
+         i < CompressionType::NUMBER_OF_COMPRESSORS; i++) {
+      if (i == CompressionType::kNoCompression) {
+        continue;
+      }
+      CompressionType type = static_cast<CompressionType>(i);
+      auto compressor = CompressorFactory::GetCompressor(type);
+      auto compressorName = CompressorFactory::GetCompressorName(type);
+
+      if (!compressor) {
+        std::fprintf(stdout, "WARNING: %s compression is not enabled\n",
+                     compressorName.c_str());
+      } else {
+        std::string compressed;
+        compressor->compress(text, sizeof(text), compressed);
+        if (compressed.size() >= sizeof(text)) {
+          std::fprintf(stdout, "WARNING: %s compression is not effective\n",
+                       compressorName.c_str());
+        }
       }
     }
   }
@@ -418,7 +436,8 @@ class Benchmark {
         value_size_(FLAGS_value_size),
         entries_per_batch_(1),
         reads_(FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads),
-        heap_counter_(0) {
+        heap_counter_(0),
+        compression_type_(kNoCompression) {
     std::vector<std::string> files;
     g_env->GetChildren(FLAGS_db, &files);
     for (size_t i = 0; i < files.size(); i++) {
@@ -518,9 +537,33 @@ class Benchmark {
       } else if (name == Slice("crc32c")) {
         method = &Benchmark::Crc32c;
       } else if (name == Slice("snappycomp")) {
+        compression_type_ = CompressionType::kSnappyCompression;
         method = &Benchmark::SnappyCompress;
       } else if (name == Slice("snappyuncomp")) {
+        compression_type_ = CompressionType::kSnappyCompression;
         method = &Benchmark::SnappyUncompress;
+
+      } else if (name == Slice("zlibcomp")) {
+        compression_type_ = CompressionType::kZlibCompression;
+        method = &Benchmark::SnappyCompress;
+      } else if (name == Slice("zlibuncomp")) {
+        compression_type_ = CompressionType::kZlibCompression;
+        method = &Benchmark::SnappyUncompress;
+
+      } else if (name == Slice("zstdcomp")) {
+        compression_type_ = CompressionType::kZstdCompression;
+        method = &Benchmark::SnappyCompress;
+      } else if (name == Slice("zstduncomp")) {
+        compression_type_ = CompressionType::kZstdCompression;
+        method = &Benchmark::SnappyUncompress;
+
+      } else if (name == Slice("zlibrawcomp")) {
+        compression_type_ = CompressionType::kZlibRawCompression;
+        method = &Benchmark::SnappyCompress;
+      } else if (name == Slice("zlibrawuncomp")) {
+        compression_type_ = CompressionType::kZlibRawCompression;
+        method = &Benchmark::SnappyUncompress;
+
       } else if (name == Slice("heapprofile")) {
         HeapProfile();
       } else if (name == Slice("stats")) {
@@ -651,7 +694,7 @@ class Benchmark {
     int64_t bytes = 0;
     int64_t produced = 0;
     bool ok = true;
-    auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
+    auto compressor = CompressorFactory::GetCompressor(compression_type_);
     if (compressor) {
       std::string compressed;
       while (ok && bytes < 1024 * 1048576) {  // Compress 1G
@@ -663,9 +706,8 @@ class Benchmark {
     } else {
       ok = false;
     }
-
     if (!ok) {
-      thread->stats.AddMessage("(snappy failure)");
+      thread->stats.AddMessage("(compressor error or not supported)");
     } else {
       char buf[100];
       std::snprintf(buf, sizeof(buf), "(output: %.1f%%)",
@@ -678,7 +720,7 @@ class Benchmark {
   void SnappyUncompress(ThreadState* thread) {
     RandomGenerator gen;
     Slice input = gen.Generate(Options().block_size);
-    auto compressor = CompressorFactory::GetCompressor(kSnappyCompression);
+    auto compressor = CompressorFactory::GetCompressor(compression_type_);
     bool ok = true;
     int64_t bytes = 0;
     if (compressor) {
@@ -697,7 +739,7 @@ class Benchmark {
     }
 
     if (!ok) {
-      thread->stats.AddMessage("(snappy failure)");
+      thread->stats.AddMessage("(compressor error or not supported)");
     } else {
       thread->stats.AddBytes(bytes);
     }
