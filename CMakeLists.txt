@@ -22,6 +22,9 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif(NOT CMAKE_CXX_STANDARD)
 
+# Include local CMake modules.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 if (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_WINDOWS)
   # TODO(cmumford): Make UNICODE configurable for Windows.
@@ -39,9 +42,9 @@ check_include_file("unistd.h" HAVE_UNISTD_H)
 
 include(CheckLibraryExists)
 check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
-check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
 check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
 
+find_package(Snappy)
 find_package(ZLIB)
 if(ZLIB_FOUND)
   set(HAVE_ZLIB 1)
@@ -285,7 +288,7 @@ if(HAVE_CRC32C)
   target_link_libraries(leveldb crc32c)
 endif(HAVE_CRC32C)
 if(HAVE_SNAPPY)
-  target_link_libraries(leveldb snappy)
+  target_link_libraries(leveldb Snappy::snappy)
 endif(HAVE_SNAPPY)
 if(HAVE_TCMALLOC)
   target_link_libraries(leveldb tcmalloc)
