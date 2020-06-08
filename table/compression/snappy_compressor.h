@@ -4,15 +4,16 @@
 #include "table/compression/compressor.h"
 
 namespace leveldb {
-	class SnappyCompressor : public Compressor 
-	{
-	public:
-        virtual ~SnappyCompressor() {}
+class SnappyCompressor : public Compressor {
+ public:
+  virtual ~SnappyCompressor() {}
 
-		virtual void compressImpl(const char* input, size_t length, ::std::string& output) const override;
+  virtual void compressImpl(const char* input, size_t length,
+                            ::std::string& output) const override;
 
-		virtual bool decompress(const char* input, size_t length, ::std::string& output) const override;
-	};
-}
+  virtual bool decompress(const char* input, size_t length,
+                          ::std::string& output) const override;
+};
+}  // namespace leveldb
 
 #endif
