@@ -38,6 +38,7 @@ addons:
     - libkyotocabinet-dev
     - libsnappy-dev
     - libsqlite3-dev
+    - libzstd-dev
     - ninja-build
   homebrew:
     packages:
@@ -50,6 +51,7 @@ addons:
     - ninja
     - snappy
     - sqlite3
+    - zstd
     update: true
 
 install:
