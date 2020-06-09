@@ -49,6 +49,10 @@ find_package(ZLIB)
 if(ZLIB_FOUND)
   set(HAVE_ZLIB 1)
 endif(ZLIB_FOUND)
+find_package(zstd)
+if(zstd_FOUND)
+  set(HAVE_ZSTD 1)
+endif(zstd_FOUND)
 
 include(CheckCXXSymbolExists)
 # Using check_cxx_symbol_exists() instead of check_c_symbol_exists() because
@@ -298,7 +302,8 @@ if(HAVE_ZLIB)
   target_link_libraries(leveldb ${ZLIB_LIBRARIES})
 endif(HAVE_ZLIB)
 if(HAVE_ZSTD)
-  target_link_libraries(leveldb zstd)
+  include_directories(${zstd_INCLUDE_DIRS})
+  target_link_libraries(leveldb ${zstd_LIBRARIES})
 endif(HAVE_ZSTD)
 
 # Needed by port_stdcxx.h
