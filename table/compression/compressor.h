@@ -13,7 +13,7 @@ class Compressor {
   virtual void compress(const char* input, size_t length,
                         ::std::string& output) const = 0;
 
-  void compress(const std::string& in, std::string& out) {
+  void compress(const std::string& in, std::string& out) const {
     compress(in.data(), in.length(), out);
   }
 
