@@ -18,7 +18,7 @@ class ZstdCompressor : public Compressor {
     assert(compressionLevel >= -1 && compressionLevel <= 9);
   }
 
-  virtual void compressImpl(const char* input, size_t length,
+  virtual void compress(const char* input, size_t length,
                             ::std::string& output) const override;
 
   virtual bool decompress(const char* input, size_t length,

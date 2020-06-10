@@ -9,7 +9,7 @@
 
 namespace leveldb {
 
-void ZlibCompressorBase::compressImpl(const char* input, size_t length,
+void ZlibCompressorBase::compress(const char* input, size_t length,
                                       ::std::string& buffer) const {
   // reserve enough memory to not reallocate on the fly
   // TODO: this memsets the whole thing to zero, big waste
