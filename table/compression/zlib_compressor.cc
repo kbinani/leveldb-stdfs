@@ -6,6 +6,7 @@
 #include <zlib.h>
 
 #include "table/compression/zlib_compressor.h"
+#include "util/coding.h"
 
 namespace leveldb {
 
@@ -13,15 +14,17 @@ void ZlibCompressorBase::compress(const char* input, size_t length,
                                       ::std::string& buffer) const {
   // reserve enough memory to not reallocate on the fly
   // TODO: this memsets the whole thing to zero, big waste
-  buffer.resize(compressBound(length));
+  buffer.resize(compressBound(length) + 4);
+
+  EncodeFixed32((char*)buffer.data(), (uint64_t)length);
 
   z_stream strm;
   strm.zalloc = 0;
   strm.zfree = 0;
   strm.next_in = (unsigned char*)(input);
   strm.avail_in = (uint32_t)length;
-  strm.next_out = (unsigned char*)&buffer[0];
-  strm.avail_out = buffer.size();
+  strm.next_out = (unsigned char*)(buffer.data() + 4);
+  strm.avail_out = buffer.size() - 4;
 
   auto res = deflateInit2(&strm, compressionLevel, Z_DEFLATED, _window(), 8,
                           Z_DEFAULT_STRATEGY);
@@ -30,26 +33,27 @@ void ZlibCompressorBase::compress(const char* input, size_t length,
   res = deflate(&strm, Z_FINISH);
   assert(res == Z_STREAM_END);
 
-  buffer.resize(strm.total_out);
+  buffer.resize(strm.total_out + 4);
 
   deflateEnd(&strm);
 }
 
 int ZlibCompressorBase::inflate(const char* input, size_t length,
                                 ::std::string& output) const {
-  const int CHUNK = 64 * 1024;
-
   int ret;
-  size_t have;
   z_stream strm;
-  unsigned char out[CHUNK];
 
+  uint64_t decoded_length = DecodeFixed32(input);
+
+  output.resize(decoded_length);
   /* allocate inflate state */
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
-  strm.avail_in = (uint32_t)length;
-  strm.next_in = (Bytef*)input;
+  strm.avail_in = (uint32_t)length - 4;
+  strm.next_in = (Bytef*)(input + 4);
+  strm.avail_out = (uint32_t)decoded_length;
+  strm.next_out = (unsigned char*)output.data();
 
   ret = inflateInit2(&strm, _window());
 
@@ -57,31 +61,15 @@ int ZlibCompressorBase::inflate(const char* input, size_t length,
     return ret;
   }
 
-  /* decompress until deflate stream ends or end of file */
-  do {
-    /* run inflate() on input until output buffer not full */
-    do {
-      strm.avail_out = CHUNK;
-      strm.next_out = out;
+  ret = ::inflate(&strm, Z_FINISH);
 
-      ret = ::inflate(&strm, Z_NO_FLUSH);
-
-      if (ret == Z_NEED_DICT) {
-        ret = Z_DATA_ERROR;
-      }
-      if (ret < 0) {
-        (void)inflateEnd(&strm);
-        return ret;
-      }
-
-      have = CHUNK - strm.avail_out;
-
-      output.append((char*)out, have);
-
-    } while (strm.avail_out == 0);
-
-    /* done when inflate() says it's done */
-  } while (ret != Z_STREAM_END);
+  if (ret == Z_NEED_DICT) {
+    ret = Z_DATA_ERROR;
+  }
+  if (ret < 0) {
+    (void)inflateEnd(&strm);
+    return ret;
+  }
 
   /* clean up and return */
   (void)inflateEnd(&strm);
