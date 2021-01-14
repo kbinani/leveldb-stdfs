@@ -4,10 +4,12 @@
 
 #include <sys/types.h>
 
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 
 #include "leveldb/cache.h"
+#include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
@@ -35,6 +37,7 @@
 //      readmissing   -- read N missing keys in random order
 //      readhot       -- read N times in random order from 1% section of DB
 //      seekrandom    -- N random seeks
+//      seekordered   -- N ordered seeks
 //      open          -- cost of opening a DB
 //      crc32c        -- repeated crc32c of 4K of data
 //   Meta operations:
@@ -85,6 +88,9 @@ static double FLAGS_compression_ratio = 0.5;
 // Print histogram of operation timings
 static bool FLAGS_histogram = false;
 
+// Count the number of string comparisons performed
+static bool FLAGS_comparisons = false;
+
 // Number of bytes to buffer in memtable before compacting
 // (initialized to default value by "main")
 static int FLAGS_write_buffer_size = 0;
@@ -108,6 +114,9 @@ static int FLAGS_open_files = 0;
 // Negative means use default settings.
 static int FLAGS_bloom_bits = -1;
 
+// Common key prefix length.
+static int FLAGS_key_prefix = 0;
+
 // If true, do not destroy the existing database.  If you set this
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
@@ -123,6 +132,33 @@ namespace leveldb {
 
 namespace {
 leveldb::Env* g_env = nullptr;
+
+class CountComparator : public Comparator {
+ public:
+  CountComparator(const Comparator* wrapped) : wrapped_(wrapped) {}
+  ~CountComparator() override {}
+  int Compare(const Slice& a, const Slice& b) const override {
+    count_.fetch_add(1, std::memory_order_relaxed);
+    return wrapped_->Compare(a, b);
+  }
+  const char* Name() const override { return wrapped_->Name(); }
+  void FindShortestSeparator(std::string* start,
+                             const Slice& limit) const override {
+    wrapped_->FindShortestSeparator(start, limit);
+  }
+
+  void FindShortSuccessor(std::string* key) const override {
+    return wrapped_->FindShortSuccessor(key);
+  }
+
+  size_t comparisons() const { return count_.load(std::memory_order_relaxed); }
+
+  void reset() { count_.store(0, std::memory_order_relaxed); }
+
+ private:
+  mutable std::atomic<size_t> count_{0};
+  const Comparator* const wrapped_;
+};
 
 // Helper for quickly generating random data.
 class RandomGenerator {
@@ -154,6 +190,26 @@ class RandomGenerator {
     pos_ += len;
     return Slice(data_.data() + pos_ - len, len);
   }
+};
+
+class KeyBuffer {
+ public:
+  KeyBuffer() {
+    assert(FLAGS_key_prefix < sizeof(buffer_));
+    memset(buffer_, 'a', FLAGS_key_prefix);
+  }
+  KeyBuffer& operator=(KeyBuffer& other) = delete;
+  KeyBuffer(KeyBuffer& other) = delete;
+
+  void Set(int k) {
+    std::snprintf(buffer_ + FLAGS_key_prefix,
+                  sizeof(buffer_) - FLAGS_key_prefix, "%016d", k);
+  }
+
+  Slice slice() const { return Slice(buffer_, FLAGS_key_prefix + 16); }
+
+ private:
+  char buffer_[1024];
 };
 
 #if defined(__linux)
@@ -312,7 +368,7 @@ struct ThreadState {
   Stats stats;
   SharedState* shared;
 
-  ThreadState(int index) : tid(index), rand(1000 + index), shared(nullptr) {}
+  ThreadState(int index, int seed) : tid(index), rand(seed), shared(nullptr) {}
 };
 
 }  // namespace
@@ -328,10 +384,12 @@ class Benchmark {
   WriteOptions write_options_;
   int reads_;
   int heap_counter_;
+  CountComparator count_comparator_;
+  int total_thread_count_;
   CompressionType compression_type_;
 
   void PrintHeader() {
-    const int kKeySize = 16;
+    const int kKeySize = 16 + FLAGS_key_prefix;
     PrintEnvironment();
     std::fprintf(stdout, "Keys:       %d bytes each\n", kKeySize);
     std::fprintf(
@@ -437,6 +495,8 @@ class Benchmark {
         entries_per_batch_(1),
         reads_(FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads),
         heap_counter_(0),
+        count_comparator_(BytewiseComparator()),
+        total_thread_count_(0),
         compression_type_(kNoCompression) {
     std::vector<std::string> files;
     g_env->GetChildren(FLAGS_db, &files);
@@ -520,6 +580,8 @@ class Benchmark {
         method = &Benchmark::ReadMissing;
       } else if (name == Slice("seekrandom")) {
         method = &Benchmark::SeekRandom;
+      } else if (name == Slice("seekordered")) {
+        method = &Benchmark::SeekOrdered;
       } else if (name == Slice("readhot")) {
         method = &Benchmark::ReadHot;
       } else if (name == Slice("readrandomsmall")) {
@@ -641,7 +703,11 @@ class Benchmark {
       arg[i].bm = this;
       arg[i].method = method;
       arg[i].shared = &shared;
-      arg[i].thread = new ThreadState(i);
+      ++total_thread_count_;
+      // Seed the thread's random state deterministically based upon thread
+      // creation across all benchmarks. This ensures that the seeds are unique
+      // but reproducible when rerunning the same set of benchmarks.
+      arg[i].thread = new ThreadState(i, /*seed=*/1000 + total_thread_count_);
       arg[i].thread->shared = &shared;
       g_env->StartThread(ThreadBody, &arg[i]);
     }
@@ -662,6 +728,11 @@ class Benchmark {
       arg[0].thread->stats.Merge(arg[i].thread->stats);
     }
     arg[0].thread->stats.Report(name);
+    if (FLAGS_comparisons) {
+      fprintf(stdout, "Comparisons: %ld\n", count_comparator_.comparisons());
+      count_comparator_.reset();
+      fflush(stdout);
+    }
 
     for (int i = 0; i < n; i++) {
       delete arg[i].thread;
@@ -755,6 +826,9 @@ class Benchmark {
     options.write_buffer_size = FLAGS_write_buffer_size;
     options.max_file_size = FLAGS_max_file_size;
     options.block_size = FLAGS_block_size;
+    if (FLAGS_comparisons) {
+      options.comparator = &count_comparator_;
+    }
     options.max_open_files = FLAGS_open_files;
     options.filter_policy = filter_policy_;
     options.reuse_logs = FLAGS_reuse_logs;
@@ -788,14 +862,14 @@ class Benchmark {
     WriteBatch batch;
     Status s;
     int64_t bytes = 0;
+    KeyBuffer key;
     for (int i = 0; i < num_; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
-        const int k = seq ? i + j : (thread->rand.Next() % FLAGS_num);
-        char key[100];
-        std::snprintf(key, sizeof(key), "%016d", k);
-        batch.Put(key, gen.Generate(value_size_));
-        bytes += value_size_ + strlen(key);
+        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num);
+        key.Set(k);
+        batch.Put(key.slice(), gen.Generate(value_size_));
+        bytes += value_size_ + key.slice().size();
         thread->stats.FinishedSingleOp();
       }
       s = db_->Write(write_options_, &batch);
@@ -837,11 +911,11 @@ class Benchmark {
     ReadOptions options;
     std::string value;
     int found = 0;
+    KeyBuffer key;
     for (int i = 0; i < reads_; i++) {
-      char key[100];
-      const int k = thread->rand.Next() % FLAGS_num;
-      std::snprintf(key, sizeof(key), "%016d", k);
-      if (db_->Get(options, key, &value).ok()) {
+      const int k = thread->rand.Uniform(FLAGS_num);
+      key.Set(k);
+      if (db_->Get(options, key.slice(), &value).ok()) {
         found++;
       }
       thread->stats.FinishedSingleOp();
@@ -854,11 +928,12 @@ class Benchmark {
   void ReadMissing(ThreadState* thread) {
     ReadOptions options;
     std::string value;
+    KeyBuffer key;
     for (int i = 0; i < reads_; i++) {
-      char key[100];
-      const int k = thread->rand.Next() % FLAGS_num;
-      std::snprintf(key, sizeof(key), "%016d.", k);
-      db_->Get(options, key, &value);
+      const int k = thread->rand.Uniform(FLAGS_num);
+      key.Set(k);
+      Slice s = Slice(key.slice().data(), key.slice().size() - 1);
+      db_->Get(options, s, &value);
       thread->stats.FinishedSingleOp();
     }
   }
@@ -867,11 +942,11 @@ class Benchmark {
     ReadOptions options;
     std::string value;
     const int range = (FLAGS_num + 99) / 100;
+    KeyBuffer key;
     for (int i = 0; i < reads_; i++) {
-      char key[100];
-      const int k = thread->rand.Next() % range;
-      std::snprintf(key, sizeof(key), "%016d", k);
-      db_->Get(options, key, &value);
+      const int k = thread->rand.Uniform(range);
+      key.Set(k);
+      db_->Get(options, key.slice(), &value);
       thread->stats.FinishedSingleOp();
     }
   }
@@ -879,16 +954,35 @@ class Benchmark {
   void SeekRandom(ThreadState* thread) {
     ReadOptions options;
     int found = 0;
+    KeyBuffer key;
     for (int i = 0; i < reads_; i++) {
       Iterator* iter = db_->NewIterator(options);
-      char key[100];
-      const int k = thread->rand.Next() % FLAGS_num;
-      std::snprintf(key, sizeof(key), "%016d", k);
-      iter->Seek(key);
-      if (iter->Valid() && iter->key() == key) found++;
+      const int k = thread->rand.Uniform(FLAGS_num);
+      key.Set(k);
+      iter->Seek(key.slice());
+      if (iter->Valid() && iter->key() == key.slice()) found++;
       delete iter;
       thread->stats.FinishedSingleOp();
     }
+    char msg[100];
+    snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+    thread->stats.AddMessage(msg);
+  }
+
+  void SeekOrdered(ThreadState* thread) {
+    ReadOptions options;
+    Iterator* iter = db_->NewIterator(options);
+    int found = 0;
+    int k = 0;
+    KeyBuffer key;
+    for (int i = 0; i < reads_; i++) {
+      k = (k + (thread->rand.Uniform(100))) % FLAGS_num;
+      key.Set(k);
+      iter->Seek(key.slice());
+      if (iter->Valid() && iter->key() == key.slice()) found++;
+      thread->stats.FinishedSingleOp();
+    }
+    delete iter;
     char msg[100];
     std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
     thread->stats.AddMessage(msg);
@@ -898,13 +992,13 @@ class Benchmark {
     RandomGenerator gen;
     WriteBatch batch;
     Status s;
+    KeyBuffer key;
     for (int i = 0; i < num_; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
-        const int k = seq ? i + j : (thread->rand.Next() % FLAGS_num);
-        char key[100];
-        std::snprintf(key, sizeof(key), "%016d", k);
-        batch.Delete(key);
+        const int k = seq ? i + j : (thread->rand.Uniform(FLAGS_num));
+        key.Set(k);
+        batch.Delete(key.slice());
         thread->stats.FinishedSingleOp();
       }
       s = db_->Write(write_options_, &batch);
@@ -925,6 +1019,7 @@ class Benchmark {
     } else {
       // Special thread that keeps writing until other threads are done.
       RandomGenerator gen;
+      KeyBuffer key;
       while (true) {
         {
           MutexLock l(&thread->shared->mu);
@@ -934,10 +1029,10 @@ class Benchmark {
           }
         }
 
-        const int k = thread->rand.Next() % FLAGS_num;
-        char key[100];
-        std::snprintf(key, sizeof(key), "%016d", k);
-        Status s = db_->Put(write_options_, key, gen.Generate(value_size_));
+        const int k = thread->rand.Uniform(FLAGS_num);
+        key.Set(k);
+        Status s =
+            db_->Put(write_options_, key.slice(), gen.Generate(value_size_));
         if (!s.ok()) {
           std::fprintf(stderr, "put error: %s\n", s.ToString().c_str());
           std::exit(1);
@@ -1002,6 +1097,9 @@ int main(int argc, char** argv) {
     } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_histogram = n;
+    } else if (sscanf(argv[i], "--comparisons=%d%c", &n, &junk) == 1 &&
+               (n == 0 || n == 1)) {
+      FLAGS_comparisons = n;
     } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_use_existing_db = n;
@@ -1022,6 +1120,8 @@ int main(int argc, char** argv) {
       FLAGS_max_file_size = n;
     } else if (sscanf(argv[i], "--block_size=%d%c", &n, &junk) == 1) {
       FLAGS_block_size = n;
+    } else if (sscanf(argv[i], "--key_prefix=%d%c", &n, &junk) == 1) {
+      FLAGS_key_prefix = n;
     } else if (sscanf(argv[i], "--cache_size=%d%c", &n, &junk) == 1) {
       FLAGS_cache_size = n;
     } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
