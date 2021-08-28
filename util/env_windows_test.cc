@@ -64,12 +64,11 @@ TEST_F(EnvWindowsTest, TestOpenOnRead) {
 
 TEST_F(EnvWindowsTest, TestOpenOnRead_Unicode) {
   // Write some test data to a single file that will be opened |n| times.
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string test_file = test_dir + u8"/open_on_runðŸƒ_read.txt";
+  std::filesystem::path test_file = test_dir / L"open_on_runðŸƒ_read.txt";
 
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  std::wstring wideUtf8Path = converter.from_bytes(test_file);
+  std::wstring wideUtf8Path = test_file.native();
   FILE* f = _wfopen(wideUtf8Path.c_str(), L"w");
   ASSERT_TRUE(f != nullptr);
   const char kFileData[] = "abcdefghijklmnopqrstuvwxyz";
@@ -98,30 +97,29 @@ TEST_F(EnvWindowsTest, TestOpenOnRead_Unicode) {
 
 TEST_F(EnvWindowsTest, TestGetChildrenEmpty) {
   // Create some dummy files.
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
 
-  std::vector<std::string> result;
+  std::vector<std::filesystem::path> result;
   ASSERT_LEVELDB_OK(env_->GetChildren(test_dir, &result));
   ASSERT_EQ(2, result.size()); // "." and ".." are always returned.
 }
 
 TEST_F(EnvWindowsTest, TestGetChildren_ChildFiles) {
   // Create some dummy files.
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
 
   int childFilesCount = 10;
   for (int i = 0; i < childFilesCount; i++) {
-    std::string test_file = test_dir + u8"/runðŸƒ_and_jumpðŸ¦˜_" + std::to_string(i) + ".txt";
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring wTest_file = converter.from_bytes(test_file);
+    std::filesystem::path test_file = test_dir / (L"runðŸƒ_and_jumpðŸ¦˜_" + std::to_wstring(i) + L".txt");
+    std::wstring wTest_file = test_file.native();
     FILE* f = _wfopen(wTest_file.c_str(), L"w");
     ASSERT_TRUE(f != nullptr);
     fclose(f);
   }
 
-  std::vector<std::string> result;
+  std::vector<std::filesystem::path> result;
   ASSERT_LEVELDB_OK(env_->GetChildren(test_dir, &result));
   ASSERT_EQ(childFilesCount + 2, result.size()); // "." and ".." are returned.
 }
