@@ -9,7 +9,7 @@ class SnappyCompressor : public Compressor {
   virtual ~SnappyCompressor() {}
 
   virtual void compress(const char* input, size_t length,
-                            ::std::string& output) const override;
+                        ::std::string& output) const override;
 
   virtual bool decompress(const char* input, size_t length,
                           ::std::string& output) const override;

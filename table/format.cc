@@ -3,12 +3,12 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "table/format.h"
-#include "table/compression/compressor_factory.h"
 
 #include "leveldb/env.h"
 
 #include "port/port.h"
 #include "table/block.h"
+#include "table/compression/compressor_factory.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
 

@@ -7,7 +7,7 @@
 #include "table/compression/zstd_compressor.h"
 
 void leveldb::ZstdCompressor::compress(const char* input, size_t length,
-                                           ::std::string& output) const {
+                                       ::std::string& output) const {
   // extend the buffer to the worst case
   auto originalSize = output.size();
   auto capacity = ZSTD_compressBound(length);

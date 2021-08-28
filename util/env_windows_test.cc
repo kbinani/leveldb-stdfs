@@ -102,7 +102,7 @@ TEST_F(EnvWindowsTest, TestGetChildrenEmpty) {
 
   std::vector<std::filesystem::path> result;
   ASSERT_LEVELDB_OK(env_->GetChildren(test_dir, &result));
-  ASSERT_EQ(2, result.size()); // "." and ".." are always returned.
+  ASSERT_EQ(2, result.size());  // "." and ".." are always returned.
 }
 
 TEST_F(EnvWindowsTest, TestGetChildren_ChildFiles) {
@@ -112,7 +112,9 @@ TEST_F(EnvWindowsTest, TestGetChildren_ChildFiles) {
 
   int childFilesCount = 10;
   for (int i = 0; i < childFilesCount; i++) {
-    std::filesystem::path test_file = test_dir / (L"runðŸƒ_and_jumpðŸ¦˜_" + std::to_wstring(i) + L".txt");
+    std::filesystem::path test_file =
+        test_dir /
+        (L"runðŸƒ_and_jumpðŸ¦˜_" + std::to_wstring(i) + L".txt");
     std::wstring wTest_file = test_file.native();
     FILE* f = _wfopen(wTest_file.c_str(), L"w");
     ASSERT_TRUE(f != nullptr);
@@ -121,7 +123,7 @@ TEST_F(EnvWindowsTest, TestGetChildren_ChildFiles) {
 
   std::vector<std::filesystem::path> result;
   ASSERT_LEVELDB_OK(env_->GetChildren(test_dir, &result));
-  ASSERT_EQ(childFilesCount + 2, result.size()); // "." and ".." are returned.
+  ASSERT_EQ(childFilesCount + 2, result.size());  // "." and ".." are returned.
 }
 
 }  // namespace leveldb
