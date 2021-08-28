@@ -38,6 +38,7 @@ std::string EscapeString(const Slice& value);
 // numeric value.  Otherwise, returns false and leaves *in in an
 // unspecified state.
 bool ConsumeDecimalNumber(Slice* in, uint64_t* val);
+bool ConsumeDecimalNumber(std::wstring* in, uint64_t* val);
 
 }  // namespace leveldb
 

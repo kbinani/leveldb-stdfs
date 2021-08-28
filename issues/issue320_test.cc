@@ -9,10 +9,12 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "leveldb/db.h"
 #include "leveldb/write_batch.h"
+
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
@@ -52,7 +54,7 @@ TEST(Issue320, Test) {
   Options options;
   options.create_if_missing = true;
 
-  std::string dbpath = testing::TempDir() + "leveldb_issue320_test";
+  std::filesystem::path dbpath = testing::TempDir() + "leveldb_issue320_test";
   ASSERT_LEVELDB_OK(DB::Open(options, dbpath, &db));
 
   uint32_t target_size = 10000;

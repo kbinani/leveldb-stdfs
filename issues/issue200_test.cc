@@ -6,15 +6,17 @@
 // to forward, the current key can be yielded unexpectedly if a new
 // mutation has been added just before the current key.
 
-#include "gtest/gtest.h"
 #include "leveldb/db.h"
+
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
 TEST(Issue200, Test) {
   // Get rid of any state from an old run.
-  std::string dbpath = testing::TempDir() + "leveldb_issue200_test";
+  std::filesystem::path dbpath = testing::TempDir() + "leveldb_issue200_test";
   DestroyDB(dbpath, Options());
 
   DB* db;

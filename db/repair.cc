@@ -34,6 +34,7 @@
 #include "db/table_cache.h"
 #include "db/version_edit.h"
 #include "db/write_batch_internal.h"
+
 #include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
@@ -44,7 +45,7 @@ namespace {
 
 class Repairer {
  public:
-  Repairer(const std::string& dbname, const Options& options)
+  Repairer(const std::filesystem::path& dbname, const Options& options)
       : dbname_(dbname),
         env_(options.env),
         icmp_(options.comparator),
@@ -96,13 +97,13 @@ class Repairer {
   };
 
   Status FindFiles() {
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     Status status = env_->GetChildren(dbname_, &filenames);
     if (!status.ok()) {
       return status;
     }
     if (filenames.empty()) {
-      return Status::IOError(dbname_, "repair found no files");
+      return Status::IOError(dbname_.native(), "repair found no files");
     }
 
     uint64_t number;
@@ -130,7 +131,7 @@ class Repairer {
 
   void ConvertLogFilesToTables() {
     for (size_t i = 0; i < logs_.size(); i++) {
-      std::string logname = LogFileName(dbname_, logs_[i]);
+      std::filesystem::path logname = LogFileName(dbname_, logs_[i]);
       Status status = ConvertLogToTable(logs_[i]);
       if (!status.ok()) {
         Log(options_.info_log, "Log #%llu: ignoring conversion error: %s",
@@ -154,7 +155,7 @@ class Repairer {
     };
 
     // Open the log file
-    std::string logname = LogFileName(dbname_, log);
+    std::filesystem::path logname = LogFileName(dbname_, log);
     SequentialFile* lfile;
     Status status = env_->NewSequentialFile(logname, &lfile);
     if (!status.ok()) {
@@ -235,7 +236,7 @@ class Repairer {
   void ScanTable(uint64_t number) {
     TableInfo t;
     t.meta.number = number;
-    std::string fname = TableFileName(dbname_, number);
+    std::filesystem::path fname = TableFileName(dbname_, number);
     Status status = env_->GetFileSize(fname, &t.meta.file_size);
     if (!status.ok()) {
       // Try alternate file name.
@@ -291,12 +292,12 @@ class Repairer {
     }
   }
 
-  void RepairTable(const std::string& src, TableInfo t) {
+  void RepairTable(const std::filesystem::path& src, TableInfo t) {
     // We will copy src contents to a new table and then rename the
     // new table over the source.
 
     // Create builder.
-    std::string copy = TableFileName(dbname_, next_file_number_++);
+    std::filesystem::path copy = TableFileName(dbname_, next_file_number_++);
     WritableFile* file;
     Status s = env_->NewWritableFile(copy, &file);
     if (!s.ok()) {
@@ -332,7 +333,7 @@ class Repairer {
     file = nullptr;
 
     if (counter > 0 && s.ok()) {
-      std::string orig = TableFileName(dbname_, t.meta.number);
+      std::filesystem::path orig = TableFileName(dbname_, t.meta.number);
       s = env_->RenameFile(copy, orig);
       if (s.ok()) {
         Log(options_.info_log, "Table #%llu: %d entries repaired",
@@ -346,7 +347,7 @@ class Repairer {
   }
 
   Status WriteDescriptor() {
-    std::string tmp = TempFileName(dbname_, 1);
+    std::filesystem::path tmp = TempFileName(dbname_, 1);
     WritableFile* file;
     Status status = env_->NewWritableFile(tmp, &file);
     if (!status.ok()) {
@@ -391,7 +392,7 @@ class Repairer {
     } else {
       // Discard older manifests
       for (size_t i = 0; i < manifests_.size(); i++) {
-        ArchiveFile(dbname_ + "/" + manifests_[i]);
+        ArchiveFile(dbname_ / manifests_[i]);
       }
 
       // Install new manifest
@@ -405,27 +406,24 @@ class Repairer {
     return status;
   }
 
-  void ArchiveFile(const std::string& fname) {
+  void ArchiveFile(const std::filesystem::path& fname) {
     // Move into another directory.  E.g., for
     //    dir/foo
     // rename to
     //    dir/lost/foo
-    const char* slash = strrchr(fname.c_str(), '/');
-    std::string new_dir;
-    if (slash != nullptr) {
-      new_dir.assign(fname.data(), slash - fname.data());
-    }
-    new_dir.append("/lost");
-    env_->CreateDir(new_dir);  // Ignore error
-    std::string new_file = new_dir;
-    new_file.append("/");
-    new_file.append((slash == nullptr) ? fname.c_str() : slash + 1);
+    using path = std::filesystem::path;
+    using string_type = std::filesystem::path::string_type;
+
+    path name = fname.filename();
+    path destination = fname.parent_path() / "lost";
+    path new_file = destination / name;
+    env_->CreateDir(destination);  // Ignore error
     Status s = env_->RenameFile(fname, new_file);
     Log(options_.info_log, "Archiving %s: %s\n", fname.c_str(),
         s.ToString().c_str());
   }
 
-  const std::string dbname_;
+  const std::filesystem::path dbname_;
   Env* const env_;
   InternalKeyComparator const icmp_;
   InternalFilterPolicy const ipolicy_;
@@ -435,7 +433,7 @@ class Repairer {
   TableCache* table_cache_;
   VersionEdit edit_;
 
-  std::vector<std::string> manifests_;
+  std::vector<std::filesystem::path> manifests_;
   std::vector<uint64_t> table_numbers_;
   std::vector<uint64_t> logs_;
   std::vector<TableInfo> tables_;
@@ -443,7 +441,7 @@ class Repairer {
 };
 }  // namespace
 
-Status RepairDB(const std::string& dbname, const Options& options) {
+Status RepairDB(const std::filesystem::path& dbname, const Options& options) {
   Repairer repairer(dbname, options);
   return repairer.Run();
 }

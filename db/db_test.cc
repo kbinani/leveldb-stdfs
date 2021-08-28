@@ -4,26 +4,28 @@
 
 #include "leveldb/db.h"
 
-#include <atomic>
-#include <cinttypes>
-#include <string>
-
-#include "gtest/gtest.h"
-#include "benchmark/benchmark.h"
 #include "db/db_impl.h"
 #include "db/filename.h"
 #include "db/version_set.h"
 #include "db/write_batch_internal.h"
+#include <atomic>
+#include <cinttypes>
+#include <string>
+
 #include "leveldb/cache.h"
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/table.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/hash.h"
 #include "util/logging.h"
 #include "util/mutexlock.h"
 #include "util/testutil.h"
+
+#include "benchmark/benchmark.h"
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
@@ -75,16 +77,16 @@ class TestEnv : public EnvWrapper {
 
   void SetIgnoreDotFiles(bool ignored) { ignore_dot_files_ = ignored; }
 
-  Status GetChildren(const std::string& dir,
-                     std::vector<std::string>* result) override {
+  Status GetChildren(const std::filesystem::path& dir,
+                     std::vector<std::filesystem::path>* result) override {
     Status s = target()->GetChildren(dir, result);
     if (!s.ok() || !ignore_dot_files_) {
       return s;
     }
 
-    std::vector<std::string>::iterator it = result->begin();
+    std::vector<std::filesystem::path>::iterator it = result->begin();
     while (it != result->end()) {
-      if ((*it == ".") || (*it == "..")) {
+      if ((*it == _T(".")) || (*it == _T(".."))) {
         it = result->erase(it);
       } else {
         ++it;
@@ -132,7 +134,8 @@ class SpecialEnv : public EnvWrapper {
         manifest_write_error_(false),
         count_random_reads_(false) {}
 
-  Status NewWritableFile(const std::string& f, WritableFile** r) {
+  Status NewWritableFile(const std::filesystem::path& f,
+                         WritableFile** r) override {
     class DataFile : public WritableFile {
      private:
       SpecialEnv* const env_;
@@ -192,18 +195,20 @@ class SpecialEnv : public EnvWrapper {
     }
 
     Status s = target()->NewWritableFile(f, r);
+    std::filesystem::path::string_type sf = f.native();
     if (s.ok()) {
-      if (strstr(f.c_str(), ".ldb") != nullptr ||
-          strstr(f.c_str(), ".log") != nullptr) {
+      if (sf.rfind(_T(".ldb")) == sf.size() - 4 ||
+          sf.rfind(_T(".log")) == sf.size() - 4) {
         *r = new DataFile(this, *r);
-      } else if (strstr(f.c_str(), "MANIFEST") != nullptr) {
+      } else if (sf.rfind(_T("MANIFEST")) != sf.size() - 8) {
         *r = new ManifestFile(this, *r);
       }
     }
     return s;
   }
 
-  Status NewRandomAccessFile(const std::string& f, RandomAccessFile** r) {
+  Status NewRandomAccessFile(const std::filesystem::path& f,
+                             RandomAccessFile** r) override {
     class CountingFile : public RandomAccessFile {
      private:
       RandomAccessFile* target_;
@@ -220,7 +225,7 @@ class SpecialEnv : public EnvWrapper {
       }
     };
 
-    Status s = target()->NewRandomAccessFile(f, r);
+    Status s = target()->NewRandomAccessFile(std::filesystem::path(f), r);
     if (s.ok() && count_random_reads_) {
       *r = new CountingFile(*r, &random_read_counter_);
     }
@@ -230,7 +235,7 @@ class SpecialEnv : public EnvWrapper {
 
 class DBTest : public testing::Test {
  public:
-  std::string dbname_;
+  std::filesystem::path dbname_;
   SpecialEnv* env_;
   DB* db_;
 
@@ -437,7 +442,7 @@ class DBTest : public testing::Test {
   }
 
   int CountFiles() {
-    std::vector<std::string> files;
+    std::vector<std::filesystem::path> files;
     env_->GetChildren(dbname_, &files);
     return static_cast<int>(files.size());
   }
@@ -500,7 +505,7 @@ class DBTest : public testing::Test {
   }
 
   bool DeleteAnSSTFile() {
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     EXPECT_LEVELDB_OK(env_->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
@@ -515,15 +520,15 @@ class DBTest : public testing::Test {
 
   // Returns number of files renamed.
   int RenameLDBToSST() {
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     EXPECT_LEVELDB_OK(env_->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
     int files_renamed = 0;
     for (size_t i = 0; i < filenames.size(); i++) {
       if (ParseFileName(filenames[i], &number, &type) && type == kTableFile) {
-        const std::string from = TableFileName(dbname_, number);
-        const std::string to = SSTTableFileName(dbname_, number);
+        const std::filesystem::path from = TableFileName(dbname_, number);
+        const std::filesystem::path to = SSTTableFileName(dbname_, number);
         EXPECT_LEVELDB_OK(env_->RenameFile(from, to));
         files_renamed++;
       }
@@ -1642,7 +1647,7 @@ TEST_F(DBTest, ManualCompaction) {
 }
 
 TEST_F(DBTest, DBOpen_Options) {
-  std::string dbname = testing::TempDir() + "db_options_test";
+  std::filesystem::path dbname = testing::TempDir() + "db_options_test";
   DestroyDB(dbname, Options());
 
   // Does not exist, and create_if_missing == false: error
@@ -1691,7 +1696,7 @@ TEST_F(DBTest, DestroyEmptyDir) {
 
   ASSERT_LEVELDB_OK(env.CreateDir(dbname));
   ASSERT_TRUE(env.FileExists(dbname));
-  std::vector<std::string> children;
+  std::vector<std::filesystem::path> children;
   ASSERT_LEVELDB_OK(env.GetChildren(dbname, &children));
   // The stock Env's do not filter out '.' and '..' special files.
   ASSERT_EQ(2, children.size());
@@ -1709,7 +1714,7 @@ TEST_F(DBTest, DestroyEmptyDir) {
 }
 
 TEST_F(DBTest, DestroyOpenDB) {
-  std::string dbname = testing::TempDir() + "open_db_dir";
+  std::filesystem::path dbname = testing::TempDir() + "open_db_dir";
   env_->RemoveDir(dbname);
   ASSERT_TRUE(!env_->FileExists(dbname));
 
@@ -2304,7 +2309,7 @@ std::string MakeKey(unsigned int num) {
 static void BM_LogAndApply(benchmark::State& state) {
   const int num_base_files = state.range(0);
 
-  std::string dbname = testing::TempDir() + "leveldb_test_benchmark";
+  std::filesystem::path dbname = testing::TempDir() + "leveldb_test_benchmark";
   DestroyDB(dbname, Options());
 
   DB* db = nullptr;

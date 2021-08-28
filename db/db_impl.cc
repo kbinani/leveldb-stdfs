@@ -4,14 +4,6 @@
 
 #include "db/db_impl.h"
 
-#include <algorithm>
-#include <atomic>
-#include <cstdint>
-#include <cstdio>
-#include <set>
-#include <string>
-#include <vector>
-
 #include "db/builder.h"
 #include "db/db_iter.h"
 #include "db/dbformat.h"
@@ -22,11 +14,20 @@
 #include "db/table_cache.h"
 #include "db/version_set.h"
 #include "db/write_batch_internal.h"
+#include <algorithm>
+#include <atomic>
+#include <cstdint>
+#include <cstdio>
+#include <set>
+#include <string>
+#include <vector>
+
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/status.h"
 #include "leveldb/table.h"
 #include "leveldb/table_builder.h"
+
 #include "port/port.h"
 #include "table/block.h"
 #include "table/merger.h"
@@ -91,7 +92,7 @@ static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
   if (static_cast<V>(*ptr) > maxvalue) *ptr = maxvalue;
   if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
 }
-Options SanitizeOptions(const std::string& dbname,
+Options SanitizeOptions(const std::filesystem::path& dbname,
                         const InternalKeyComparator* icmp,
                         const InternalFilterPolicy* ipolicy,
                         const Options& src) {
@@ -123,7 +124,7 @@ static int TableCacheSize(const Options& sanitized_options) {
   return sanitized_options.max_open_files - kNumNonTableCacheFiles;
 }
 
-DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
+DBImpl::DBImpl(const Options& raw_options, const std::filesystem::path& dbname)
     : env_(raw_options.env),
       internal_comparator_(raw_options.comparator),
       internal_filter_policy_(raw_options.filter_policy),
@@ -185,7 +186,7 @@ Status DBImpl::NewDB() {
   new_db.SetNextFile(2);
   new_db.SetLastSequence(0);
 
-  const std::string manifest = DescriptorFileName(dbname_, 1);
+  const std::filesystem::path manifest = DescriptorFileName(dbname_, 1);
   WritableFile* file;
   Status s = env_->NewWritableFile(manifest, &file);
   if (!s.ok()) {
@@ -235,12 +236,12 @@ void DBImpl::RemoveObsoleteFiles() {
   std::set<uint64_t> live = pending_outputs_;
   versions_->AddLiveFiles(&live);
 
-  std::vector<std::string> filenames;
+  std::vector<std::filesystem::path> filenames;
   env_->GetChildren(dbname_, &filenames);  // Ignoring errors on purpose
   uint64_t number;
   FileType type;
-  std::vector<std::string> files_to_delete;
-  for (std::string& filename : filenames) {
+  std::vector<std::filesystem::path> files_to_delete;
+  for (std::filesystem::path& filename : filenames) {
     if (ParseFileName(filename, &number, &type)) {
       bool keep = true;
       switch (type) {
@@ -283,8 +284,8 @@ void DBImpl::RemoveObsoleteFiles() {
   // have unique names which will not collide with newly created files and
   // are therefore safe to delete while allowing other threads to proceed.
   mutex_.Unlock();
-  for (const std::string& filename : files_to_delete) {
-    env_->RemoveFile(dbname_ + "/" + filename);
+  for (const std::filesystem::path& filename : files_to_delete) {
+    env_->RemoveFile(dbname_ / filename);
   }
   mutex_.Lock();
 }
@@ -312,11 +313,11 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
       }
     } else {
       return Status::InvalidArgument(
-          dbname_, "does not exist (create_if_missing is false)");
+          dbname_.native(), "does not exist (create_if_missing is false)");
     }
   } else {
     if (options_.error_if_exists) {
-      return Status::InvalidArgument(dbname_,
+      return Status::InvalidArgument(dbname_.native(),
                                      "exists (error_if_exists is true)");
     }
   }
@@ -336,7 +337,7 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
   // produced by an older version of leveldb.
   const uint64_t min_log = versions_->LogNumber();
   const uint64_t prev_log = versions_->PrevLogNumber();
-  std::vector<std::string> filenames;
+  std::vector<std::filesystem::path> filenames;
   s = env_->GetChildren(dbname_, &filenames);
   if (!s.ok()) {
     return s;
@@ -357,7 +358,8 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
     char buf[50];
     std::snprintf(buf, sizeof(buf), "%d missing files; e.g.",
                   static_cast<int>(expected.size()));
-    return Status::Corruption(buf, TableFileName(dbname_, *(expected.begin())));
+    return Status::Corruption(
+        buf, TableFileName(dbname_, *expected.begin()).native());
   }
 
   // Recover in the order in which the logs were generated
@@ -388,7 +390,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   struct LogReporter : public log::Reader::Reporter {
     Env* env;
     Logger* info_log;
-    const char* fname;
+    const std::filesystem::path::value_type* fname;
     Status* status;  // null if options_.paranoid_checks==false
     void Corruption(size_t bytes, const Status& s) override {
       Log(info_log, "%s%s: dropping %d bytes; %s",
@@ -401,7 +403,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   mutex_.AssertHeld();
 
   // Open the log file
-  std::string fname = LogFileName(dbname_, log_number);
+  std::filesystem::path fname = LogFileName(dbname_, log_number);
   SequentialFile* file;
   Status status = env_->NewSequentialFile(fname, &file);
   if (!status.ok()) {
@@ -814,7 +816,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   }
 
   // Make the output file
-  std::string fname = TableFileName(dbname_, file_number);
+  std::filesystem::path fname = TableFileName(dbname_, file_number);
   Status s = env_->NewWritableFile(fname, &compact->outfile);
   if (s.ok()) {
     compact->builder = new TableBuilder(options_, compact->outfile);
@@ -1480,7 +1482,8 @@ Status DB::Delete(const WriteOptions& opt, const Slice& key) {
 
 DB::~DB() = default;
 
-Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
+Status DB::Open(const Options& options, const std::filesystem::path& dbname,
+                DB** dbptr) {
   *dbptr = nullptr;
 
   DBImpl* impl = new DBImpl(options, dbname);
@@ -1525,9 +1528,9 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
 
 Snapshot::~Snapshot() = default;
 
-Status DestroyDB(const std::string& dbname, const Options& options) {
+Status DestroyDB(const std::filesystem::path& dbname, const Options& options) {
   Env* env = options.env;
-  std::vector<std::string> filenames;
+  std::vector<std::filesystem::path> filenames;
   Status result = env->GetChildren(dbname, &filenames);
   if (!result.ok()) {
     // Ignore error in case directory does not exist
@@ -1535,7 +1538,7 @@ Status DestroyDB(const std::string& dbname, const Options& options) {
   }
 
   FileLock* lock;
-  const std::string lockname = LockFileName(dbname);
+  const std::filesystem::path lockname = LockFileName(dbname);
   result = env->LockFile(lockname, &lock);
   if (result.ok()) {
     uint64_t number;
@@ -1543,7 +1546,7 @@ Status DestroyDB(const std::string& dbname, const Options& options) {
     for (size_t i = 0; i < filenames.size(); i++) {
       if (ParseFileName(filenames[i], &number, &type) &&
           type != kDBLockFile) {  // Lock file will be deleted at end
-        Status del = env->RemoveFile(dbname + "/" + filenames[i]);
+        Status del = env->RemoveFile(dbname / filenames[i]);
         if (result.ok() && !del.ok()) {
           result = del;
         }

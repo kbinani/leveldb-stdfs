@@ -2,22 +2,23 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <unordered_set>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "leveldb/env.h"
+
 #include "port/port.h"
 #include "util/env_posix_test_helper.h"
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 #if HAVE_O_CLOEXEC
 
@@ -183,9 +184,9 @@ class EnvPosixTest : public testing::Test {
 
 TEST_F(EnvPosixTest, TestOpenOnRead) {
   // Write some test data to a single file that will be opened |n| times.
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string test_file = test_dir + "/open_on_read.txt";
+  std::filesystem::path test_file = test_dir / "open_on_read.txt";
 
   FILE* f = std::fopen(test_file.c_str(), "we");
   ASSERT_TRUE(f != nullptr);
@@ -218,9 +219,9 @@ TEST_F(EnvPosixTest, TestCloseOnExecSequentialFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string file_path = test_dir + "/close_on_exec_sequential.txt";
+  std::filesystem::path file_path = test_dir / "close_on_exec_sequential.txt";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::SequentialFile* file = nullptr;
@@ -235,9 +236,10 @@ TEST_F(EnvPosixTest, TestCloseOnExecRandomAccessFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string file_path = test_dir + "/close_on_exec_random_access.txt";
+  std::filesystem::path file_path =
+      test_dir / "close_on_exec_random_access.txt";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   // Exhaust the RandomAccessFile mmap limit. This way, the test
@@ -263,9 +265,9 @@ TEST_F(EnvPosixTest, TestCloseOnExecWritableFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string file_path = test_dir + "/close_on_exec_writable.txt";
+  std::filesystem::path file_path = test_dir / "close_on_exec_writable.txt";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::WritableFile* file = nullptr;
@@ -280,9 +282,9 @@ TEST_F(EnvPosixTest, TestCloseOnExecAppendableFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string file_path = test_dir + "/close_on_exec_appendable.txt";
+  std::filesystem::path file_path = test_dir / "close_on_exec_appendable.txt";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::WritableFile* file = nullptr;
@@ -297,9 +299,9 @@ TEST_F(EnvPosixTest, TestCloseOnExecLockFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string file_path = test_dir + "/close_on_exec_lock.txt";
+  std::filesystem::path file_path = test_dir / "close_on_exec_lock.txt";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::FileLock* lock = nullptr;
@@ -314,9 +316,9 @@ TEST_F(EnvPosixTest, TestCloseOnExecLogger) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string file_path = test_dir + "/close_on_exec_logger.txt";
+  std::filesystem::path file_path = test_dir / "close_on_exec_logger.txt";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::Logger* file = nullptr;

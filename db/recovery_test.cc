@@ -2,23 +2,26 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "gtest/gtest.h"
 #include "db/db_impl.h"
 #include "db/filename.h"
 #include "db/version_set.h"
 #include "db/write_batch_internal.h"
+
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/write_batch.h"
+
 #include "util/logging.h"
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
 class RecoveryTest : public testing::Test {
  public:
   RecoveryTest() : env_(Env::Default()), db_(nullptr) {
-    dbname_ = testing::TempDir() + "/recovery_test";
+    dbname_ = std::filesystem::path(testing::TempDir()) / "recovery_test";
     DestroyDB(dbname_, Options());
     Open();
   }
@@ -82,7 +85,7 @@ class RecoveryTest : public testing::Test {
     return result;
   }
 
-  std::string ManifestFileName() {
+  std::filesystem::path ManifestFileName() {
     std::string current;
     EXPECT_LEVELDB_OK(
         ReadFileToString(env_, CurrentFileName(dbname_), &current));
@@ -90,10 +93,12 @@ class RecoveryTest : public testing::Test {
     if (len > 0 && current[len - 1] == '\n') {
       current.resize(len - 1);
     }
-    return dbname_ + "/" + current;
+    return dbname_ / current;
   }
 
-  std::string LogName(uint64_t number) { return LogFileName(dbname_, number); }
+  std::filesystem::path LogName(uint64_t number) {
+    return LogFileName(dbname_, number);
+  }
 
   size_t RemoveLogFiles() {
     // Linux allows unlinking open files, but Windows does not.
@@ -113,7 +118,7 @@ class RecoveryTest : public testing::Test {
   uint64_t FirstLogFile() { return GetFiles(kLogFile)[0]; }
 
   std::vector<uint64_t> GetFiles(FileType t) {
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     EXPECT_LEVELDB_OK(env_->GetChildren(dbname_, &filenames));
     std::vector<uint64_t> result;
     for (size_t i = 0; i < filenames.size(); i++) {
@@ -130,7 +135,7 @@ class RecoveryTest : public testing::Test {
 
   int NumTables() { return GetFiles(kTableFile).size(); }
 
-  uint64_t FileSize(const std::string& fname) {
+  uint64_t FileSize(const std::filesystem::path& fname) {
     uint64_t result;
     EXPECT_LEVELDB_OK(env_->GetFileSize(fname, &result)) << fname;
     return result;
@@ -140,7 +145,7 @@ class RecoveryTest : public testing::Test {
 
   // Directly construct a log file that sets key to val.
   void MakeLogFile(uint64_t lognum, SequenceNumber seq, Slice key, Slice val) {
-    std::string fname = LogFileName(dbname_, lognum);
+    std::filesystem::path fname = LogFileName(dbname_, lognum);
     WritableFile* file;
     ASSERT_LEVELDB_OK(env_->NewWritableFile(fname, &file));
     log::Writer writer(file);
@@ -153,7 +158,7 @@ class RecoveryTest : public testing::Test {
   }
 
  private:
-  std::string dbname_;
+  std::filesystem::path dbname_;
   Env* env_;
   DB* db_;
 };
@@ -166,7 +171,7 @@ TEST_F(RecoveryTest, ManifestReused) {
   }
   ASSERT_LEVELDB_OK(Put("foo", "bar"));
   Close();
-  std::string old_manifest = ManifestFileName();
+  std::filesystem::path old_manifest = ManifestFileName();
   Open();
   ASSERT_EQ(old_manifest, ManifestFileName());
   ASSERT_EQ("bar", Get("foo"));
@@ -183,7 +188,7 @@ TEST_F(RecoveryTest, LargeManifestCompacted) {
   }
   ASSERT_LEVELDB_OK(Put("foo", "bar"));
   Close();
-  std::string old_manifest = ManifestFileName();
+  std::filesystem::path old_manifest = ManifestFileName();
 
   // Pad with zeroes to make manifest file very big.
   {
@@ -197,7 +202,7 @@ TEST_F(RecoveryTest, LargeManifestCompacted) {
   }
 
   Open();
-  std::string new_manifest = ManifestFileName();
+  std::filesystem::path new_manifest = ManifestFileName();
   ASSERT_NE(old_manifest, new_manifest);
   ASSERT_GT(10000, FileSize(new_manifest));
   ASSERT_EQ("bar", Get("foo"));

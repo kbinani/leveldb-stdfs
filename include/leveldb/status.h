@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include "leveldb/export.h"
 #include "leveldb/slice.h"
@@ -40,17 +41,33 @@ class LEVELDB_EXPORT Status {
   static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kNotFound, msg, msg2);
   }
+  static Status NotFound(const std::wstring& msg, const std::string& msg2) {
+    return Status(kNotFound, Narrow(msg), msg2);
+  }
   static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kCorruption, msg, msg2);
+  }
+  static Status Corruption(const Slice& msg, const std::wstring& msg2) {
+    return Status(kCorruption, msg, Narrow(msg2));
   }
   static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kNotSupported, msg, msg2);
   }
+  static Status NotSupported(const Slice& msg, const std::wstring& msg2) {
+    return Status(kNotSupported, msg, Narrow(msg2));
+  }
   static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kInvalidArgument, msg, msg2);
   }
+  static Status InvalidArgument(const std::wstring& msg,
+                                const std::string& msg2) {
+    return Status(kInvalidArgument, Narrow(msg), msg2);
+  }
   static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kIOError, msg, msg2);
+  }
+  static Status IOError(const std::wstring& msg, const std::string& msg2) {
+    return Status(kIOError, Narrow(msg), msg2);
   }
 
   // Returns true iff the status indicates success.
@@ -91,6 +108,8 @@ class LEVELDB_EXPORT Status {
 
   Status(Code code, const Slice& msg, const Slice& msg2);
   static const char* CopyState(const char* s);
+
+  static std::string Narrow(const std::wstring& wstr);
 
   // OK status has a null state_.  Otherwise, state_ is a new[] array
   // of the following form:

@@ -2,19 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <sys/types.h>
-
-#include "gtest/gtest.h"
 #include "db/db_impl.h"
 #include "db/filename.h"
 #include "db/log_format.h"
 #include "db/version_set.h"
+#include <sys/types.h>
+
 #include "leveldb/cache.h"
 #include "leveldb/db.h"
 #include "leveldb/table.h"
 #include "leveldb/write_batch.h"
+
 #include "util/logging.h"
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
@@ -112,16 +114,16 @@ class CorruptionTest : public testing::Test {
 
   void Corrupt(FileType filetype, int offset, int bytes_to_corrupt) {
     // Pick file to corrupt
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     ASSERT_LEVELDB_OK(env_.target()->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
-    std::string fname;
+    std::filesystem::path fname;
     int picked_number = -1;
     for (size_t i = 0; i < filenames.size(); i++) {
       if (ParseFileName(filenames[i], &number, &type) && type == filetype &&
           int(number) > picked_number) {  // Pick latest file
-        fname = dbname_ + "/" + filenames[i];
+        fname = dbname_ / filenames[i];
         picked_number = number;
       }
     }
@@ -186,7 +188,7 @@ class CorruptionTest : public testing::Test {
   DB* db_;
 
  private:
-  std::string dbname_;
+  std::filesystem::path dbname_;
   Cache* tiny_cache_;
 };
 

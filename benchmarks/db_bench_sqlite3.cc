@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <sqlite3.h>
-
 #include <cstdio>
 #include <cstdlib>
+#include <sqlite3.h>
 
+#include "port/port.h"
 #include "util/histogram.h"
 #include "util/random.h"
 #include "util/testutil.h"
@@ -80,7 +80,7 @@ static bool FLAGS_transaction = true;
 static bool FLAGS_WAL_enabled = true;
 
 // Use the db with the following name.
-static const char* FLAGS_db = nullptr;
+static std::filesystem::path FLAGS_db;
 
 inline static void ExecErrorCheck(int status, char* err_msg) {
   if (status != SQLITE_OK) {
@@ -322,17 +322,15 @@ class Benchmark {
         reads_(FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads),
         bytes_(0),
         rand_(301) {
-    std::vector<std::string> files;
-    std::string test_dir;
+    std::vector<std::filesystem::path> files;
+    std::filesystem::path test_dir;
     Env::Default()->GetTestDirectory(&test_dir);
     Env::Default()->GetChildren(test_dir, &files);
     if (!FLAGS_use_existing_db) {
       for (int i = 0; i < files.size(); i++) {
-        if (Slice(files[i]).starts_with("dbbench_sqlite3")) {
-          std::string file_name(test_dir);
-          file_name += "/";
-          file_name += files[i];
-          Env::Default()->RemoveFile(file_name.c_str());
+        if (files[i].native().find(_T("dbbench_sqlite3")) == 0) {
+          std::filesystem::path file_name = test_dir / files[i];
+          Env::Default()->RemoveFile(file_name);
         }
       }
     }
@@ -427,7 +425,7 @@ class Benchmark {
     db_num_++;
 
     // Open database
-    std::string tmp_dir;
+    std::filesystem::path tmp_dir;
     Env::Default()->GetTestDirectory(&tmp_dir);
     std::snprintf(file_name, sizeof(file_name), "%s/dbbench_sqlite3-%d.db",
                   tmp_dir.c_str(), db_num_);
@@ -672,7 +670,7 @@ class Benchmark {
 }  // namespace leveldb
 
 int main(int argc, char** argv) {
-  std::string default_db_path;
+  std::filesystem::path default_db_path;
   for (int i = 1; i < argc; i++) {
     double d;
     int n;
@@ -714,10 +712,9 @@ int main(int argc, char** argv) {
   }
 
   // Choose a location for the test database if none given with --db=<path>
-  if (FLAGS_db == nullptr) {
+  if (FLAGS_db.empty()) {
     leveldb::Env::Default()->GetTestDirectory(&default_db_path);
-    default_db_path += "/dbbench";
-    FLAGS_db = default_db_path.c_str();
+    FLAGS_db = default_db_path / "dbbench";
   }
 
   leveldb::Benchmark benchmark;

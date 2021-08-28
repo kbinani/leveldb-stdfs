@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <sys/types.h>
-
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
+#include <sys/types.h>
 
 #include "leveldb/cache.h"
 #include "leveldb/comparator.h"
@@ -14,6 +13,7 @@
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/write_batch.h"
+
 #include "port/port.h"
 #include "table/compression/compressor_factory.h"
 #include "util/crc32c.h"
@@ -126,7 +126,7 @@ static bool FLAGS_use_existing_db = false;
 static bool FLAGS_reuse_logs = false;
 
 // Use the db with the following name.
-static const char* FLAGS_db = nullptr;
+static std::filesystem::path FLAGS_db;
 
 namespace leveldb {
 
@@ -498,11 +498,11 @@ class Benchmark {
         count_comparator_(BytewiseComparator()),
         total_thread_count_(0),
         compression_type_(kNoCompression) {
-    std::vector<std::string> files;
+    std::vector<std::filesystem::path> files;
     g_env->GetChildren(FLAGS_db, &files);
     for (size_t i = 0; i < files.size(); i++) {
-      if (Slice(files[i]).starts_with("heap-")) {
-        g_env->RemoveFile(std::string(FLAGS_db) + "/" + files[i]);
+      if (files[i].native().find(_T("heap-")) == 0) {
+        g_env->RemoveFile(FLAGS_db / files[i]);
       }
     }
     if (!FLAGS_use_existing_db) {
@@ -1060,10 +1060,9 @@ class Benchmark {
 
   void HeapProfile() {
     char fname[100];
-    std::snprintf(fname, sizeof(fname), "%s/heap-%04d", FLAGS_db,
-                  ++heap_counter_);
+    std::snprintf(fname, sizeof(fname), "heap-%04d", ++heap_counter_);
     WritableFile* file;
-    Status s = g_env->NewWritableFile(fname, &file);
+    Status s = g_env->NewWritableFile(FLAGS_db / fname, &file);
     if (!s.ok()) {
       std::fprintf(stderr, "%s\n", s.ToString().c_str());
       return;
@@ -1072,7 +1071,7 @@ class Benchmark {
     delete file;
     if (!ok) {
       std::fprintf(stderr, "heap profiling not supported\n");
-      g_env->RemoveFile(fname);
+      g_env->RemoveFile(std::filesystem::path(fname));
     }
   }
 };
@@ -1084,7 +1083,7 @@ int main(int argc, char** argv) {
   FLAGS_max_file_size = leveldb::Options().max_file_size;
   FLAGS_block_size = leveldb::Options().block_size;
   FLAGS_open_files = leveldb::Options().max_open_files;
-  std::string default_db_path;
+  std::filesystem::path default_db_path;
 
   for (int i = 1; i < argc; i++) {
     double d;
@@ -1139,9 +1138,9 @@ int main(int argc, char** argv) {
   leveldb::g_env = leveldb::Env::Default();
 
   // Choose a location for the test database if none given with --db=<path>
-  if (FLAGS_db == nullptr) {
+  if (FLAGS_db.empty()) {
     leveldb::g_env->GetTestDirectory(&default_db_path);
-    default_db_path += "/dbbench";
+    default_db_path = default_db_path / "dbbench";
     FLAGS_db = default_db_path.c_str();
   }
 

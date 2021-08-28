@@ -4,14 +4,16 @@
 
 #include "helpers/memenv/memenv.h"
 
+#include "db/db_impl.h"
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "db/db_impl.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
+
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
@@ -24,89 +26,96 @@ class MemEnvTest : public testing::Test {
 };
 
 TEST_F(MemEnvTest, Basics) {
+  using path = std::filesystem::path;
+
   uint64_t file_size;
   WritableFile* writable_file;
-  std::vector<std::string> children;
+  std::vector<path> children;
 
-  ASSERT_LEVELDB_OK(env_->CreateDir("/dir"));
+  ASSERT_LEVELDB_OK(env_->CreateDir(path("/dir")));
 
   // Check that the directory is empty.
-  ASSERT_TRUE(!env_->FileExists("/dir/non_existent"));
-  ASSERT_TRUE(!env_->GetFileSize("/dir/non_existent", &file_size).ok());
-  ASSERT_LEVELDB_OK(env_->GetChildren("/dir", &children));
+  ASSERT_TRUE(!env_->FileExists(path("/dir/non_existent")));
+  ASSERT_TRUE(!env_->GetFileSize(path("/dir/non_existent"), &file_size).ok());
+  ASSERT_LEVELDB_OK(env_->GetChildren(path("/dir"), &children));
   ASSERT_EQ(0, children.size());
 
   // Create a file.
-  ASSERT_LEVELDB_OK(env_->NewWritableFile("/dir/f", &writable_file));
-  ASSERT_LEVELDB_OK(env_->GetFileSize("/dir/f", &file_size));
+  ASSERT_LEVELDB_OK(env_->NewWritableFile(path("/dir/f"), &writable_file));
+  ASSERT_LEVELDB_OK(env_->GetFileSize(path("/dir/f"), &file_size));
   ASSERT_EQ(0, file_size);
   delete writable_file;
 
   // Check that the file exists.
-  ASSERT_TRUE(env_->FileExists("/dir/f"));
-  ASSERT_LEVELDB_OK(env_->GetFileSize("/dir/f", &file_size));
+  ASSERT_TRUE(env_->FileExists(path("/dir/f")));
+  ASSERT_LEVELDB_OK(env_->GetFileSize(path("/dir/f"), &file_size));
   ASSERT_EQ(0, file_size);
-  ASSERT_LEVELDB_OK(env_->GetChildren("/dir", &children));
+  ASSERT_LEVELDB_OK(env_->GetChildren(path("/dir"), &children));
   ASSERT_EQ(1, children.size());
-  ASSERT_EQ("f", children[0]);
+  ASSERT_EQ(path("f"), children[0]);
 
   // Write to the file.
-  ASSERT_LEVELDB_OK(env_->NewWritableFile("/dir/f", &writable_file));
+  ASSERT_LEVELDB_OK(env_->NewWritableFile(path("/dir/f"), &writable_file));
   ASSERT_LEVELDB_OK(writable_file->Append("abc"));
   delete writable_file;
 
   // Check that append works.
-  ASSERT_LEVELDB_OK(env_->NewAppendableFile("/dir/f", &writable_file));
-  ASSERT_LEVELDB_OK(env_->GetFileSize("/dir/f", &file_size));
+  ASSERT_LEVELDB_OK(env_->NewAppendableFile(path("/dir/f"), &writable_file));
+  ASSERT_LEVELDB_OK(env_->GetFileSize(path("/dir/f"), &file_size));
   ASSERT_EQ(3, file_size);
   ASSERT_LEVELDB_OK(writable_file->Append("hello"));
   delete writable_file;
 
   // Check for expected size.
-  ASSERT_LEVELDB_OK(env_->GetFileSize("/dir/f", &file_size));
+  ASSERT_LEVELDB_OK(env_->GetFileSize(path("/dir/f"), &file_size));
   ASSERT_EQ(8, file_size);
 
   // Check that renaming works.
-  ASSERT_TRUE(!env_->RenameFile("/dir/non_existent", "/dir/g").ok());
-  ASSERT_LEVELDB_OK(env_->RenameFile("/dir/f", "/dir/g"));
-  ASSERT_TRUE(!env_->FileExists("/dir/f"));
-  ASSERT_TRUE(env_->FileExists("/dir/g"));
-  ASSERT_LEVELDB_OK(env_->GetFileSize("/dir/g", &file_size));
+  ASSERT_TRUE(
+      !env_->RenameFile(path("/dir/non_existent"), path("/dir/g")).ok());
+  ASSERT_LEVELDB_OK(env_->RenameFile(path("/dir/f"), path("/dir/g")));
+  ASSERT_TRUE(!env_->FileExists(path("/dir/f")));
+  ASSERT_TRUE(env_->FileExists(path("/dir/g")));
+  ASSERT_LEVELDB_OK(env_->GetFileSize(path("/dir/g"), &file_size));
   ASSERT_EQ(8, file_size);
 
   // Check that opening non-existent file fails.
   SequentialFile* seq_file;
   RandomAccessFile* rand_file;
-  ASSERT_TRUE(!env_->NewSequentialFile("/dir/non_existent", &seq_file).ok());
+  ASSERT_TRUE(
+      !env_->NewSequentialFile(path("/dir/non_existent"), &seq_file).ok());
   ASSERT_TRUE(!seq_file);
-  ASSERT_TRUE(!env_->NewRandomAccessFile("/dir/non_existent", &rand_file).ok());
+  ASSERT_TRUE(
+      !env_->NewRandomAccessFile(path("/dir/non_existent"), &rand_file).ok());
   ASSERT_TRUE(!rand_file);
 
   // Check that deleting works.
-  ASSERT_TRUE(!env_->RemoveFile("/dir/non_existent").ok());
-  ASSERT_LEVELDB_OK(env_->RemoveFile("/dir/g"));
-  ASSERT_TRUE(!env_->FileExists("/dir/g"));
-  ASSERT_LEVELDB_OK(env_->GetChildren("/dir", &children));
+  ASSERT_TRUE(!env_->RemoveFile(path("/dir/non_existent")).ok());
+  ASSERT_LEVELDB_OK(env_->RemoveFile(path("/dir/g")));
+  ASSERT_TRUE(!env_->FileExists(path("/dir/g")));
+  ASSERT_LEVELDB_OK(env_->GetChildren(path("/dir"), &children));
   ASSERT_EQ(0, children.size());
-  ASSERT_LEVELDB_OK(env_->RemoveDir("/dir"));
+  ASSERT_LEVELDB_OK(env_->RemoveDir(path("/dir")));
 }
 
 TEST_F(MemEnvTest, ReadWrite) {
+  using path = std::filesystem::path;
+
   WritableFile* writable_file;
   SequentialFile* seq_file;
   RandomAccessFile* rand_file;
   Slice result;
   char scratch[100];
 
-  ASSERT_LEVELDB_OK(env_->CreateDir("/dir"));
+  ASSERT_LEVELDB_OK(env_->CreateDir(path("/dir")));
 
-  ASSERT_LEVELDB_OK(env_->NewWritableFile("/dir/f", &writable_file));
+  ASSERT_LEVELDB_OK(env_->NewWritableFile(path("/dir/f"), &writable_file));
   ASSERT_LEVELDB_OK(writable_file->Append("hello "));
   ASSERT_LEVELDB_OK(writable_file->Append("world"));
   delete writable_file;
 
   // Read sequentially.
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile("/dir/f", &seq_file));
+  ASSERT_LEVELDB_OK(env_->NewSequentialFile(path("/dir/f"), &seq_file));
   ASSERT_LEVELDB_OK(seq_file->Read(5, &result, scratch));  // Read "hello".
   ASSERT_EQ(0, result.compare("hello"));
   ASSERT_LEVELDB_OK(seq_file->Skip(1));
@@ -121,7 +130,7 @@ TEST_F(MemEnvTest, ReadWrite) {
   delete seq_file;
 
   // Random reads.
-  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile("/dir/f", &rand_file));
+  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(path("/dir/f"), &rand_file));
   ASSERT_LEVELDB_OK(rand_file->Read(6, 5, &result, scratch));  // Read "world".
   ASSERT_EQ(0, result.compare("world"));
   ASSERT_LEVELDB_OK(rand_file->Read(0, 5, &result, scratch));  // Read "hello".
@@ -138,17 +147,18 @@ TEST_F(MemEnvTest, Locks) {
   FileLock* lock;
 
   // These are no-ops, but we test they return success.
-  ASSERT_LEVELDB_OK(env_->LockFile("some file", &lock));
+  ASSERT_LEVELDB_OK(env_->LockFile(std::filesystem::path("some file"), &lock));
   ASSERT_LEVELDB_OK(env_->UnlockFile(lock));
 }
 
 TEST_F(MemEnvTest, Misc) {
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
   ASSERT_TRUE(!test_dir.empty());
 
   WritableFile* writable_file;
-  ASSERT_LEVELDB_OK(env_->NewWritableFile("/a/b", &writable_file));
+  ASSERT_LEVELDB_OK(
+      env_->NewWritableFile(std::filesystem::path("/a/b"), &writable_file));
 
   // These are no-ops, but we test they return success.
   ASSERT_LEVELDB_OK(writable_file->Sync());
@@ -167,14 +177,16 @@ TEST_F(MemEnvTest, LargeWrite) {
   }
 
   WritableFile* writable_file;
-  ASSERT_LEVELDB_OK(env_->NewWritableFile("/dir/f", &writable_file));
+  ASSERT_LEVELDB_OK(
+      env_->NewWritableFile(std::filesystem::path("/dir/f"), &writable_file));
   ASSERT_LEVELDB_OK(writable_file->Append("foo"));
   ASSERT_LEVELDB_OK(writable_file->Append(write_data));
   delete writable_file;
 
   SequentialFile* seq_file;
   Slice result;
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile("/dir/f", &seq_file));
+  ASSERT_LEVELDB_OK(
+      env_->NewSequentialFile(std::filesystem::path("/dir/f"), &seq_file));
   ASSERT_LEVELDB_OK(seq_file->Read(3, &result, scratch));  // Read "foo".
   ASSERT_EQ(0, result.compare("foo"));
 
@@ -193,7 +205,8 @@ TEST_F(MemEnvTest, LargeWrite) {
 TEST_F(MemEnvTest, OverwriteOpenFile) {
   const char kWrite1Data[] = "Write #1 data";
   const size_t kFileDataLen = sizeof(kWrite1Data) - 1;
-  const std::string kTestFileName = testing::TempDir() + "leveldb-TestFile.dat";
+  const std::filesystem::path kTestFileName =
+      testing::TempDir() + "leveldb-TestFile.dat";
 
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, kWrite1Data, kTestFileName));
 
@@ -222,7 +235,7 @@ TEST_F(MemEnvTest, DBTest) {
   const Slice keys[] = {Slice("aaa"), Slice("bbb"), Slice("ccc")};
   const Slice vals[] = {Slice("foo"), Slice("bar"), Slice("baz")};
 
-  ASSERT_LEVELDB_OK(DB::Open(options, "/dir/db", &db));
+  ASSERT_LEVELDB_OK(DB::Open(options, std::filesystem::path("/dir/db"), &db));
   for (size_t i = 0; i < 3; ++i) {
     ASSERT_LEVELDB_OK(db->Put(WriteOptions(), keys[i], vals[i]));
   }
