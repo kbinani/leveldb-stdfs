@@ -17,49 +17,56 @@ namespace leveldb {
 Status WriteStringToFileSync(Env* env, const Slice& data,
                              const std::filesystem::path& fname);
 
-static std::filesystem::path MakeFileName(const std::filesystem::path& dbname, uint64_t number,
-                                const char* suffix) {
+static std::filesystem::path MakeFileName(const std::filesystem::path& dbname,
+                                          uint64_t number, const char* suffix) {
   char buf[100];
   std::snprintf(buf, sizeof(buf), "%06llu.%s",
                 static_cast<unsigned long long>(number), suffix);
   return dbname / buf;
 }
 
-std::filesystem::path LogFileName(const std::filesystem::path& dbname, uint64_t number) {
+std::filesystem::path LogFileName(const std::filesystem::path& dbname,
+                                  uint64_t number) {
   assert(number > 0);
   return MakeFileName(dbname, number, "log");
 }
 
-std::filesystem::path TableFileName(const std::filesystem::path& dbname, uint64_t number) {
+std::filesystem::path TableFileName(const std::filesystem::path& dbname,
+                                    uint64_t number) {
   assert(number > 0);
   return MakeFileName(dbname, number, "ldb");
 }
 
-std::filesystem::path SSTTableFileName(const std::filesystem::path& dbname, uint64_t number) {
+std::filesystem::path SSTTableFileName(const std::filesystem::path& dbname,
+                                       uint64_t number) {
   assert(number > 0);
   return MakeFileName(dbname, number, "sst");
 }
 
 std::string DescriptorFileBaseName(uint64_t number) {
-    char buf[100];
-    std::snprintf(buf, sizeof(buf), "MANIFEST-%06llu",
-        static_cast<unsigned long long>(number));
-    return buf;
+  char buf[100];
+  std::snprintf(buf, sizeof(buf), "MANIFEST-%06llu",
+                static_cast<unsigned long long>(number));
+  return buf;
 }
 
-std::filesystem::path DescriptorFileName(const std::filesystem::path& dbname, uint64_t number) {
+std::filesystem::path DescriptorFileName(const std::filesystem::path& dbname,
+                                         uint64_t number) {
   assert(number > 0);
   std::string baseName = DescriptorFileBaseName(number);
-  return dbname  / baseName;
+  return dbname / baseName;
 }
 
 std::filesystem::path CurrentFileName(const std::filesystem::path& dbname) {
   return dbname / "CURRENT";
 }
 
-std::filesystem::path LockFileName(const std::filesystem::path& dbname) { return dbname /  "LOCK"; }
+std::filesystem::path LockFileName(const std::filesystem::path& dbname) {
+  return dbname / "LOCK";
+}
 
-std::filesystem::path TempFileName(const std::filesystem::path& dbname, uint64_t number) {
+std::filesystem::path TempFileName(const std::filesystem::path& dbname,
+                                   uint64_t number) {
   assert(number > 0);
   return MakeFileName(dbname, number, "dbtmp");
 }
@@ -82,8 +89,8 @@ std::filesystem::path OldInfoLogFileName(const std::filesystem::path& dbname) {
 //    dbname/[0-9]+.(log|sst|ldb)
 bool ParseFileName(const std::filesystem::path& filename, uint64_t* number,
                    FileType* type) {
-   namespace fs = std::filesystem;
-   fs::path::string_type rest(filename);
+  namespace fs = std::filesystem;
+  fs::path::string_type rest(filename);
   if (rest == _T("CURRENT")) {
     *number = 0;
     *type = kCurrentFile;
@@ -94,7 +101,7 @@ bool ParseFileName(const std::filesystem::path& filename, uint64_t* number,
     *number = 0;
     *type = kInfoLogFile;
   } else if (rest.find(_T("MANIFEST-")) == 0) {
-      rest = rest.substr(9);
+    rest = rest.substr(9);
     uint64_t num;
     if (!ConsumeDecimalNumber(&rest, &num)) {
       return false;

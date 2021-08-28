@@ -93,7 +93,9 @@ class RecoveryTest : public testing::Test {
     return dbname_ / current;
   }
 
-  std::filesystem::path LogName(uint64_t number) { return LogFileName(dbname_, number); }
+  std::filesystem::path LogName(uint64_t number) {
+    return LogFileName(dbname_, number);
+  }
 
   size_t RemoveLogFiles() {
     // Linux allows unlinking open files, but Windows does not.

@@ -213,8 +213,8 @@ class WindowsRandomAccessFile : public RandomAccessFile {
 class WindowsMmapReadableFile : public RandomAccessFile {
  public:
   // base[0,length-1] contains the mmapped contents of the file.
-  WindowsMmapReadableFile(std::filesystem::path filename, char* mmap_base, size_t length,
-                          Limiter* mmap_limiter)
+  WindowsMmapReadableFile(std::filesystem::path filename, char* mmap_base,
+                          size_t length, Limiter* mmap_limiter)
       : mmap_base_(mmap_base),
         length_(length),
         mmap_limiter_(mmap_limiter),
@@ -413,12 +413,11 @@ class WindowsEnv : public Env {
     }
 
     ScopedHandle mapping =
-            ::CreateFileMappingW(handle.get(),
-                                 /*security attributes=*/nullptr,
-                                 PAGE_READONLY,
-                                 /*dwMaximumSizeHigh=*/0,
-                                 /*dwMaximumSizeLow=*/0,
-                                 /*lpName=*/nullptr);
+        ::CreateFileMappingW(handle.get(),
+                             /*security attributes=*/nullptr, PAGE_READONLY,
+                             /*dwMaximumSizeHigh=*/0,
+                             /*dwMaximumSizeLow=*/0,
+                             /*lpName=*/nullptr);
     if (mapping.is_valid()) {
       void* mmap_base = ::MapViewOfFile(mapping.get(), FILE_MAP_READ,
                                         /*dwFileOffsetHigh=*/0,
@@ -490,8 +489,9 @@ class WindowsEnv : public Env {
       wchar_t ext[_MAX_EXT];
 
       std::wstring find_data_filename = find_data.cFileName;
-      if (!_wsplitpath_s(find_data_filename.c_str(), nullptr, 0, nullptr, 0, base_name,
-                        ARRAYSIZE(base_name), ext, ARRAYSIZE(ext))) {
+      if (!_wsplitpath_s(find_data_filename.c_str(), nullptr, 0, nullptr, 0,
+                         base_name, ARRAYSIZE(base_name), ext,
+                         ARRAYSIZE(ext))) {
         result->emplace_back(std::wstring(base_name) + ext);
       }
     } while (::FindNextFileW(dir_handle, &find_data));
@@ -524,7 +524,8 @@ class WindowsEnv : public Env {
     return Status::OK();
   }
 
-  Status GetFileSize(const std::filesystem::path& filename, uint64_t* size) override {
+  Status GetFileSize(const std::filesystem::path& filename,
+                     uint64_t* size) override {
     WIN32_FILE_ATTRIBUTE_DATA file_attributes;
     if (!::GetFileAttributesExW(filename.c_str(), GetFileExInfoStandard,
                                 &file_attributes)) {
@@ -537,7 +538,8 @@ class WindowsEnv : public Env {
     return Status::OK();
   }
 
-  Status RenameFile(const std::filesystem::path& from, const std::filesystem::path& to) override {
+  Status RenameFile(const std::filesystem::path& from,
+                    const std::filesystem::path& to) override {
     // Try a simple move first. It will only succeed when |to| doesn't already
     // exist.
     if (::MoveFileW(from.c_str(), to.c_str())) {
@@ -566,7 +568,8 @@ class WindowsEnv : public Env {
     }
   }
 
-  Status LockFile(const std::filesystem::path& filename, FileLock** lock) override {
+  Status LockFile(const std::filesystem::path& filename,
+                  FileLock** lock) override {
     *lock = nullptr;
     Status result;
     ScopedHandle handle = ::CreateFileW(
@@ -624,7 +627,8 @@ class WindowsEnv : public Env {
     return Status::OK();
   }
 
-  Status NewLogger(const std::filesystem::path& filename, Logger** result) override {
+  Status NewLogger(const std::filesystem::path& filename,
+                   Logger** result) override {
     std::FILE* fp = _wfopen(filename.c_str(), L"w");
     if (fp == nullptr) {
       *result = nullptr;

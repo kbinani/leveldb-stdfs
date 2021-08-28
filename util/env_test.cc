@@ -103,7 +103,7 @@ TEST_F(EnvTest, RunMany) {
 
   struct Callback {
     RunState* state_;  // Pointer to shared state.
-    const int id_;  // Order# for the execution of this callback.
+    const int id_;     // Order# for the execution of this callback.
 
     Callback(RunState* s, int id) : state_(s), id_(id) {}
 
@@ -211,7 +211,8 @@ TEST_F(EnvTest, ReopenWritableFile) {
 TEST_F(EnvTest, ReopenAppendableFile) {
   std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::filesystem::path test_file_name = test_dir / "reopen_appendable_file.txt";
+  std::filesystem::path test_file_name =
+      test_dir / "reopen_appendable_file.txt";
   env_->RemoveFile(test_file_name);
 
   WritableFile* appendable_file;

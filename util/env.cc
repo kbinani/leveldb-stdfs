@@ -18,15 +18,24 @@ Env::Env() = default;
 
 Env::~Env() = default;
 
-Status Env::NewAppendableFile(const std::filesystem::path& fname, WritableFile** result) {
+Status Env::NewAppendableFile(const std::filesystem::path& fname,
+                              WritableFile** result) {
   return Status::NotSupported("NewAppendableFile", fname);
 }
 
-Status Env::RemoveDir(const std::filesystem::path& dirname) { return DeleteDir(dirname); }
-Status Env::DeleteDir(const std::filesystem::path& dirname) { return RemoveDir(dirname); }
+Status Env::RemoveDir(const std::filesystem::path& dirname) {
+  return DeleteDir(dirname);
+}
+Status Env::DeleteDir(const std::filesystem::path& dirname) {
+  return RemoveDir(dirname);
+}
 
-Status Env::RemoveFile(const std::filesystem::path& fname) { return DeleteFile(fname); }
-Status Env::DeleteFile(const std::filesystem::path& fname) { return RemoveFile(fname); }
+Status Env::RemoveFile(const std::filesystem::path& fname) {
+  return DeleteFile(fname);
+}
+Status Env::DeleteFile(const std::filesystem::path& fname) {
+  return RemoveFile(fname);
+}
 
 SequentialFile::~SequentialFile() = default;
 
@@ -48,7 +57,8 @@ void Log(Logger* info_log, const char* format, ...) {
 }
 
 static Status DoWriteStringToFile(Env* env, const Slice& data,
-                                  const std::filesystem::path& fname, bool should_sync) {
+                                  const std::filesystem::path& fname,
+                                  bool should_sync) {
   WritableFile* file;
   Status s = env->NewWritableFile(fname, &file);
   if (!s.ok()) {
@@ -78,7 +88,8 @@ Status WriteStringToFileSync(Env* env, const Slice& data,
   return DoWriteStringToFile(env, data, fname, true);
 }
 
-Status ReadFileToString(Env* env, const std::filesystem::path& fname, std::string* data) {
+Status ReadFileToString(Env* env, const std::filesystem::path& fname,
+                        std::string* data) {
   data->clear();
   SequentialFile* file;
   Status s = env->NewSequentialFile(fname, &file);

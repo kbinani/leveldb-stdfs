@@ -32,22 +32,26 @@ enum FileType {
 // Return the name of the log file with the specified number
 // in the db named by "dbname".  The result will be prefixed with
 // "dbname".
-std::filesystem::path LogFileName(const std::filesystem::path& dbname, uint64_t number);
+std::filesystem::path LogFileName(const std::filesystem::path& dbname,
+                                  uint64_t number);
 
 // Return the name of the sstable with the specified number
 // in the db named by "dbname".  The result will be prefixed with
 // "dbname".
-std::filesystem::path TableFileName(const std::filesystem::path& dbname, uint64_t number);
+std::filesystem::path TableFileName(const std::filesystem::path& dbname,
+                                    uint64_t number);
 
 // Return the legacy file name for an sstable with the specified number
 // in the db named by "dbname". The result will be prefixed with
 // "dbname".
-std::filesystem::path SSTTableFileName(const std::filesystem::path& dbname, uint64_t number);
+std::filesystem::path SSTTableFileName(const std::filesystem::path& dbname,
+                                       uint64_t number);
 
 // Return the name of the descriptor file for the db named by
 // "dbname" and the specified incarnation number.  The result will be
 // prefixed with "dbname".
-std::filesystem::path DescriptorFileName(const std::filesystem::path& dbname, uint64_t number);
+std::filesystem::path DescriptorFileName(const std::filesystem::path& dbname,
+                                         uint64_t number);
 
 // Return the name of the current file.  This file contains the name
 // of the current manifest file.  The result will be prefixed with
@@ -60,7 +64,8 @@ std::filesystem::path LockFileName(const std::filesystem::path& dbname);
 
 // Return the name of a temporary file owned by the db named "dbname".
 // The result will be prefixed with "dbname".
-std::filesystem::path TempFileName(const std::filesystem::path& dbname, uint64_t number);
+std::filesystem::path TempFileName(const std::filesystem::path& dbname,
+                                   uint64_t number);
 
 // Return the name of the info log file for "dbname".
 std::filesystem::path InfoLogFileName(const std::filesystem::path& dbname);

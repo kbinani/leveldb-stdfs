@@ -410,16 +410,16 @@ class Repairer {
     //    dir/foo
     // rename to
     //    dir/lost/foo
-      using path = std::filesystem::path;
-      using string_type = std::filesystem::path::string_type;
+    using path = std::filesystem::path;
+    using string_type = std::filesystem::path::string_type;
 
-      path name = fname.filename();
-      path destination = fname.parent_path() / "lost";
-      path new_file = destination / name;
-       env_->CreateDir(destination); // Ignore error
-       Status s = env_->RenameFile(fname, new_file);
-       Log(options_.info_log, "Archiving %s: %s\n", fname.c_str(),
-           s.ToString().c_str());
+    path name = fname.filename();
+    path destination = fname.parent_path() / "lost";
+    path new_file = destination / name;
+    env_->CreateDir(destination);  // Ignore error
+    Status s = env_->RenameFile(fname, new_file);
+    Log(options_.info_log, "Archiving %s: %s\n", fname.c_str(),
+        s.ToString().c_str());
   }
 
   const std::filesystem::path dbname_;

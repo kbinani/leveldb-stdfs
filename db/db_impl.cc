@@ -1481,7 +1481,8 @@ Status DB::Delete(const WriteOptions& opt, const Slice& key) {
 
 DB::~DB() = default;
 
-Status DB::Open(const Options& options, const std::filesystem::path& dbname, DB** dbptr) {
+Status DB::Open(const Options& options, const std::filesystem::path& dbname,
+                DB** dbptr) {
   *dbptr = nullptr;
 
   DBImpl* impl = new DBImpl(options, dbname);

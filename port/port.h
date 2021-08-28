@@ -17,7 +17,7 @@
 #endif
 
 #if defined(_WIN32)
-#define _T(v) (L ## v)
+#define _T(v) (L##v)
 #else
 #define _T(v) (v)
 #endif

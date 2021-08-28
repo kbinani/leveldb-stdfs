@@ -329,11 +329,16 @@ class InMemoryEnv : public EnvWrapper {
     return Status::OK();
   }
 
-  Status CreateDir(const std::filesystem::path& dirname) override { return Status::OK(); }
+  Status CreateDir(const std::filesystem::path& dirname) override {
+    return Status::OK();
+  }
 
-  Status RemoveDir(const std::filesystem::path& dirname) override { return Status::OK(); }
+  Status RemoveDir(const std::filesystem::path& dirname) override {
+    return Status::OK();
+  }
 
-  Status GetFileSize(const std::filesystem::path& fname, uint64_t* file_size) override {
+  Status GetFileSize(const std::filesystem::path& fname,
+                     uint64_t* file_size) override {
     MutexLock lock(&mutex_);
     if (file_map_.find(fname) == file_map_.end()) {
       return Status::IOError(fname, "File not found");
@@ -356,7 +361,8 @@ class InMemoryEnv : public EnvWrapper {
     return Status::OK();
   }
 
-  Status LockFile(const std::filesystem::path& fname, FileLock** lock) override {
+  Status LockFile(const std::filesystem::path& fname,
+                  FileLock** lock) override {
     *lock = new FileLock;
     return Status::OK();
   }
@@ -371,7 +377,8 @@ class InMemoryEnv : public EnvWrapper {
     return Status::OK();
   }
 
-  Status NewLogger(const std::filesystem::path& fname, Logger** result) override {
+  Status NewLogger(const std::filesystem::path& fname,
+                   Logger** result) override {
     *result = new NoOpLogger;
     return Status::OK();
   }

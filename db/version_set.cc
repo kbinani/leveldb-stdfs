@@ -730,8 +730,8 @@ class VersionSet::Builder {
   }
 };
 
-VersionSet::VersionSet(const std::filesystem::path& dbname, const Options* options,
-                       TableCache* table_cache,
+VersionSet::VersionSet(const std::filesystem::path& dbname,
+                       const Options* options, TableCache* table_cache,
                        const InternalKeyComparator* cmp)
     : env_(options->env),
       dbname_(dbname),

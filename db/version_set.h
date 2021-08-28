@@ -276,7 +276,8 @@ class VersionSet {
   friend class Compaction;
   friend class Version;
 
-  bool ReuseManifest(const std::filesystem::path& dscname, const std::filesystem::path& dscbase);
+  bool ReuseManifest(const std::filesystem::path& dscname,
+                     const std::filesystem::path& dscbase);
 
   void Finalize(Version* v);
 

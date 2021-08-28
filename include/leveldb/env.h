@@ -163,7 +163,8 @@ class LEVELDB_EXPORT Env {
   virtual Status DeleteDir(const std::filesystem::path& dirname);
 
   // Store the size of fname in *file_size.
-  virtual Status GetFileSize(const std::filesystem::path& fname, uint64_t* file_size) = 0;
+  virtual Status GetFileSize(const std::filesystem::path& fname,
+                             uint64_t* file_size) = 0;
 
   // Rename file src to target.
   virtual Status RenameFile(const std::filesystem::path& src,
@@ -183,7 +184,8 @@ class LEVELDB_EXPORT Env {
   // to go away.
   //
   // May create the named file if it does not already exist.
-  virtual Status LockFile(const std::filesystem::path& fname, FileLock** lock) = 0;
+  virtual Status LockFile(const std::filesystem::path& fname,
+                          FileLock** lock) = 0;
 
   // Release the lock acquired by a previous successful call to LockFile.
   // REQUIRES: lock was returned by a successful LockFile() call
@@ -209,7 +211,8 @@ class LEVELDB_EXPORT Env {
   virtual Status GetTestDirectory(std::filesystem::path* path) = 0;
 
   // Create and return a log file for storing informational messages.
-  virtual Status NewLogger(const std::filesystem::path& fname, Logger** result) = 0;
+  virtual Status NewLogger(const std::filesystem::path& fname,
+                           Logger** result) = 0;
 
   // Returns the number of micro-seconds since some fixed point in time. Only
   // useful for computing deltas of time.
@@ -327,7 +330,8 @@ LEVELDB_EXPORT Status WriteStringToFile(Env* env, const Slice& data,
                                         const std::filesystem::path& fname);
 
 // A utility routine: read contents of named file into *data
-LEVELDB_EXPORT Status ReadFileToString(Env* env, const std::filesystem::path& fname,
+LEVELDB_EXPORT Status ReadFileToString(Env* env,
+                                       const std::filesystem::path& fname,
                                        std::string* data);
 
 // An implementation of Env that forwards all calls to another Env.
@@ -343,17 +347,20 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   Env* target() const { return target_; }
 
   // The following text is boilerplate that forwards all methods to target().
-  Status NewSequentialFile(const std::filesystem::path& f, SequentialFile** r) override {
+  Status NewSequentialFile(const std::filesystem::path& f,
+                           SequentialFile** r) override {
     return target_->NewSequentialFile(f, r);
   }
   Status NewRandomAccessFile(const std::filesystem::path& f,
                              RandomAccessFile** r) override {
     return target_->NewRandomAccessFile(f, r);
   }
-  Status NewWritableFile(const std::filesystem::path& f, WritableFile** r) override {
+  Status NewWritableFile(const std::filesystem::path& f,
+                         WritableFile** r) override {
     return target_->NewWritableFile(f, r);
   }
-  Status NewAppendableFile(const std::filesystem::path& f, WritableFile** r) override {
+  Status NewAppendableFile(const std::filesystem::path& f,
+                           WritableFile** r) override {
     return target_->NewAppendableFile(f, r);
   }
   bool FileExists(const std::filesystem::path& f) override {
@@ -375,7 +382,8 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   Status GetFileSize(const std::filesystem::path& f, uint64_t* s) override {
     return target_->GetFileSize(f, s);
   }
-  Status RenameFile(const std::filesystem::path& s, const std::filesystem::path& t) override {
+  Status RenameFile(const std::filesystem::path& s,
+                    const std::filesystem::path& t) override {
     return target_->RenameFile(s, t);
   }
   Status LockFile(const std::filesystem::path& f, FileLock** l) override {
@@ -391,7 +399,8 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   Status GetTestDirectory(std::filesystem::path* path) override {
     return target_->GetTestDirectory(path);
   }
-  Status NewLogger(const std::filesystem::path& fname, Logger** result) override {
+  Status NewLogger(const std::filesystem::path& fname,
+                   Logger** result) override {
     return target_->NewLogger(fname, result);
   }
   uint64_t NowMicros() override { return target_->NowMicros(); }

@@ -14,8 +14,9 @@
 
 namespace leveldb {
 
-Status BuildTable(const std::filesystem::path& dbname, Env* env, const Options& options,
-                  TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
+Status BuildTable(const std::filesystem::path& dbname, Env* env,
+                  const Options& options, TableCache* table_cache,
+                  Iterator* iter, FileMetaData* meta) {
   Status s;
   meta->file_size = 0;
   iter->SeekToFirst();
