@@ -1,0 +1,44 @@
+name: CI
+
+on: push
+
+jobs:
+  Linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Check style
+        uses: DoozyX/clang-format-lint-action@v0.12
+        with:
+          clangFormatVersion: 12
+          exclude: ./ext
+
+      - name: Build
+        run: |
+          mkdir -p ./build
+          cd ./build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --parallel --config Release --verbose
+          ctest --verbose --build-config=Release
+
+  Windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --parallel --config Release --verbose
+          ctest --build-config=Release --verbose
