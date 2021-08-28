@@ -28,7 +28,7 @@ std::string Key2(int i) { return Key1(i) + "_xxx"; }
 
 TEST(Issue178, Test) {
   // Get rid of any state from an old run.
-  std::string dbpath = testing::TempDir() + "leveldb_cbug_test";
+  std::filesystem::path dbpath = testing::TempDir() + "leveldb_cbug_test";
   DestroyDB(dbpath, leveldb::Options());
 
   // Open database.  Disable compression since it affects the creation

@@ -188,7 +188,7 @@ class CorruptionTest : public testing::Test {
   DB* db_;
 
  private:
-  std::string dbname_;
+  std::filesystem::path dbname_;
   Cache* tiny_cache_;
 };
 

@@ -232,7 +232,7 @@ class SpecialEnv : public EnvWrapper {
 
 class DBTest : public testing::Test {
  public:
-  std::string dbname_;
+  std::filesystem::path dbname_;
   SpecialEnv* env_;
   DB* db_;
 
@@ -1644,7 +1644,7 @@ TEST_F(DBTest, ManualCompaction) {
 }
 
 TEST_F(DBTest, DBOpen_Options) {
-  std::string dbname = testing::TempDir() + "db_options_test";
+  std::filesystem::path dbname = testing::TempDir() + "db_options_test";
   DestroyDB(dbname, Options());
 
   // Does not exist, and create_if_missing == false: error
@@ -1711,7 +1711,7 @@ TEST_F(DBTest, DestroyEmptyDir) {
 }
 
 TEST_F(DBTest, DestroyOpenDB) {
-  std::string dbname = testing::TempDir() + "open_db_dir";
+  std::filesystem::path dbname = testing::TempDir() + "open_db_dir";
   env_->RemoveDir(dbname);
   ASSERT_TRUE(!env_->FileExists(dbname));
 
@@ -2306,7 +2306,7 @@ std::string MakeKey(unsigned int num) {
 static void BM_LogAndApply(benchmark::State& state) {
   const int num_base_files = state.range(0);
 
-  std::string dbname = testing::TempDir() + "leveldb_test_benchmark";
+  std::filesystem::path dbname = testing::TempDir() + "leveldb_test_benchmark";
   DestroyDB(dbname, Options());
 
   DB* db = nullptr;

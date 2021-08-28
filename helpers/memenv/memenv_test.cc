@@ -224,7 +224,7 @@ TEST_F(MemEnvTest, DBTest) {
   const Slice keys[] = {Slice("aaa"), Slice("bbb"), Slice("ccc")};
   const Slice vals[] = {Slice("foo"), Slice("bar"), Slice("baz")};
 
-  ASSERT_LEVELDB_OK(DB::Open(options, "/dir/db", &db));
+  ASSERT_LEVELDB_OK(DB::Open(options, std::filesystem::path("/dir/db"), &db));
   for (size_t i = 0; i < 3; ++i) {
     ASSERT_LEVELDB_OK(db->Put(WriteOptions(), keys[i], vals[i]));
   }

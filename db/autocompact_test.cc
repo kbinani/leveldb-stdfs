@@ -47,7 +47,7 @@ class AutoCompactTest : public testing::Test {
   void DoReads(int n);
 
  private:
-  std::string dbname_;
+  std::filesystem::path dbname_;
   Cache* tiny_cache_;
   Options options_;
   DB* db_;

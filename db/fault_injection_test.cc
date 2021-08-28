@@ -374,7 +374,7 @@ class FaultInjectionTest : public testing::Test {
   enum ResetMethod { RESET_DROP_UNSYNCED_DATA, RESET_DELETE_UNSYNCED_FILES };
 
   FaultInjectionTestEnv* env_;
-  std::string dbname_;
+  std::filesystem::path dbname_;
   Cache* tiny_cache_;
   Options options_;
   DB* db_;
