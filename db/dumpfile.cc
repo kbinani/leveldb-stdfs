@@ -52,7 +52,7 @@ class CorruptionReporter : public log::Reader::Reporter {
 };
 
 // Print contents of a log file. (*func)() is called on every record.
-Status PrintLogContents(Env* env, const std::string& fname,
+Status PrintLogContents(Env* env, const std::filesystem::path& fname,
                         void (*func)(uint64_t, Slice, WritableFile*),
                         WritableFile* dst) {
   SequentialFile* file;
@@ -141,11 +141,13 @@ static void VersionEditPrinter(uint64_t pos, Slice record, WritableFile* dst) {
   dst->Append(r);
 }
 
-Status DumpDescriptor(Env* env, const std::string& fname, WritableFile* dst) {
+Status DumpDescriptor(Env* env, const std::filesystem::path& fname,
+                      WritableFile* dst) {
   return PrintLogContents(env, fname, VersionEditPrinter, dst);
 }
 
-Status DumpTable(Env* env, const std::string& fname, WritableFile* dst) {
+Status DumpTable(Env* env, const std::filesystem::path& fname,
+                 WritableFile* dst) {
   uint64_t file_size;
   RandomAccessFile* file = nullptr;
   Table* table = nullptr;

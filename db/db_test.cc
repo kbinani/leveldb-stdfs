@@ -134,7 +134,8 @@ class SpecialEnv : public EnvWrapper {
         manifest_write_error_(false),
         count_random_reads_(false) {}
 
-  Status NewWritableFile(const std::string& f, WritableFile** r) {
+  Status NewWritableFile(const std::filesystem::path& f,
+                         WritableFile** r) override {
     class DataFile : public WritableFile {
      private:
       SpecialEnv* const env_;
@@ -194,18 +195,20 @@ class SpecialEnv : public EnvWrapper {
     }
 
     Status s = target()->NewWritableFile(f, r);
+    std::filesystem::path::string_type sf = f.native();
     if (s.ok()) {
-      if (strstr(f.c_str(), ".ldb") != nullptr ||
-          strstr(f.c_str(), ".log") != nullptr) {
+      if (sf.rfind(_T(".ldb")) == sf.size() - 4 ||
+          sf.rfind(_T(".log")) == sf.size() - 4) {
         *r = new DataFile(this, *r);
-      } else if (strstr(f.c_str(), "MANIFEST") != nullptr) {
+      } else if (sf.rfind(_T("MANIFEST")) != sf.size() - 8) {
         *r = new ManifestFile(this, *r);
       }
     }
     return s;
   }
 
-  Status NewRandomAccessFile(const std::string& f, RandomAccessFile** r) {
+  Status NewRandomAccessFile(const std::filesystem::path& f,
+                             RandomAccessFile** r) override {
     class CountingFile : public RandomAccessFile {
      private:
       RandomAccessFile* target_;
@@ -222,7 +225,7 @@ class SpecialEnv : public EnvWrapper {
       }
     };
 
-    Status s = target()->NewRandomAccessFile(f, r);
+    Status s = target()->NewRandomAccessFile(std::filesystem::path(f), r);
     if (s.ok() && count_random_reads_) {
       *r = new CountingFile(*r, &random_read_counter_);
     }
@@ -2363,6 +2366,6 @@ BENCHMARK(BM_LogAndApply)->Arg(1)->Arg(100)->Arg(10000)->Arg(100000);
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
-  benchmark::RunSpecifiedBenchmarks();
+  // benchmark::RunSpecifiedBenchmarks();
   return RUN_ALL_TESTS();
 }

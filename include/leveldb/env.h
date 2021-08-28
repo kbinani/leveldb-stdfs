@@ -75,6 +75,14 @@ class LEVELDB_EXPORT Env {
   virtual Status NewSequentialFile(const std::filesystem::path& fname,
                                    SequentialFile** result) = 0;
 
+  Status NewSequentialFile(const std::string& fname,
+                           SequentialFile** result) = delete;
+  Status NewSequentialFile(const std::wstring& fname,
+                           SequentialFile** result) = delete;
+  Status NewSequentialFile(const char* fname, SequentialFile** result) = delete;
+  Status NewSequentialFile(const wchar_t* fname,
+                           SequentialFile** result) = delete;
+
   // Create an object supporting random-access reads from the file with the
   // specified name.  On success, stores a pointer to the new file in
   // *result and returns OK.  On failure stores nullptr in *result and
@@ -86,6 +94,15 @@ class LEVELDB_EXPORT Env {
   virtual Status NewRandomAccessFile(const std::filesystem::path& fname,
                                      RandomAccessFile** result) = 0;
 
+  Status NewRandomAccessFile(const std::string& fname,
+                             RandomAccessFile** result) = delete;
+  Status NewRandomAccessFile(const std::wstring& fname,
+                             RandomAccessFile** result) = delete;
+  Status NewRandomAccessFile(const char* fname,
+                             RandomAccessFile** result) = delete;
+  Status NewRandomAccessFile(const wchar_t* fname,
+                             RandomAccessFile** result) = delete;
+
   // Create an object that writes to a new file with the specified
   // name.  Deletes any existing file with the same name and creates a
   // new file.  On success, stores a pointer to the new file in
@@ -95,6 +112,13 @@ class LEVELDB_EXPORT Env {
   // The returned file will only be accessed by one thread at a time.
   virtual Status NewWritableFile(const std::filesystem::path& fname,
                                  WritableFile** result) = 0;
+
+  Status NewWritableFile(const std::string& fname,
+                         WritableFile** result) = delete;
+  Status NewWritableFile(const std::wstring& fname,
+                         WritableFile** result) = delete;
+  Status NewWritableFile(const char* fname, WritableFile** result) = delete;
+  Status NewWritableFile(const wchar_t* fname, WritableFile** result) = delete;
 
   // Create an object that either appends to an existing file, or
   // writes to a new file (if the file does not exist to begin with).
@@ -111,14 +135,37 @@ class LEVELDB_EXPORT Env {
   virtual Status NewAppendableFile(const std::filesystem::path& fname,
                                    WritableFile** result);
 
+  Status NewAppendableFile(const std::string& fname,
+                           WritableFile** result) = delete;
+  Status NewAppendableFile(const std::wstring& fname,
+                           WritableFile** result) = delete;
+  Status NewAppendableFile(const char* fname, WritableFile** result) = delete;
+  Status NewAppendableFile(const wchar_t* fname,
+                           WritableFile** result) = delete;
+
   // Returns true iff the named file exists.
   virtual bool FileExists(const std::filesystem::path& fname) = 0;
+
+  bool FileExists(const std::string& fname) = delete;
+  bool FileExists(const std::wstring& fname) = delete;
+  bool FileExists(const char* fname) = delete;
+  bool FileExists(const wchar_t* fname) = delete;
 
   // Store in *result the names of the children of the specified directory.
   // The names are relative to "dir".
   // Original contents of *results are dropped.
   virtual Status GetChildren(const std::filesystem::path& dir,
                              std::vector<std::filesystem::path>* result) = 0;
+
+  Status GetChildren(const std::string& dir,
+                     std::vector<std::filesystem::path>* result) = delete;
+  Status GetChildren(const std::wstring& dir,
+                     std::vector<std::filesystem::path>* result) = delete;
+  Status GetChildren(const char* dir,
+                     std::vector<std::filesystem::path>* result) = delete;
+  Status GetChildren(const wchar_t* dir,
+                     std::vector<std::filesystem::path>* result) = delete;
+
   // Delete the named file.
   //
   // The default implementation calls DeleteFile, to support legacy Env
@@ -130,6 +177,11 @@ class LEVELDB_EXPORT Env {
   // RemoveDir.
   virtual Status RemoveFile(const std::filesystem::path& fname);
 
+  Status RemoveFile(const std::string& fname) = delete;
+  Status RemoveFile(const std::wstring& fname) = delete;
+  Status RemoveFile(const char* fname) = delete;
+  Status RemoveFile(const wchar_t* fname) = delete;
+
   // DEPRECATED: Modern Env implementations should override RemoveFile instead.
   //
   // The default implementation calls RemoveFile, to support legacy Env user
@@ -139,8 +191,18 @@ class LEVELDB_EXPORT Env {
   // A future release will remove this method.
   virtual Status DeleteFile(const std::filesystem::path& fname);
 
+  Status DeleteFile(const std::string& fname) = delete;
+  Status DeleteFile(const std::wstring& fname) = delete;
+  Status DeleteFile(const char* fname) = delete;
+  Status DeleteFile(const wchar_t* fname) = delete;
+
   // Create the specified directory.
   virtual Status CreateDir(const std::filesystem::path& dirname) = 0;
+
+  Status CreateDir(const std::string& dirname) = delete;
+  Status CreateDir(const std::wstring& dirname) = delete;
+  Status CreateDir(const char* dirname) = delete;
+  Status CreateDir(const wchar_t* dirname) = delete;
 
   // Delete the specified directory.
   //
@@ -153,6 +215,11 @@ class LEVELDB_EXPORT Env {
   // RemoveDir.
   virtual Status RemoveDir(const std::filesystem::path& dirname);
 
+  Status RemoveDir(const std::string& dirname) = delete;
+  Status RemoveDir(const std::wstring& dirname) = delete;
+  Status RemoveDir(const char* dirname) = delete;
+  Status RemoveDir(const wchar_t* dirname) = delete;
+
   // DEPRECATED: Modern Env implementations should override RemoveDir instead.
   //
   // The default implementation calls RemoveDir, to support legacy Env user
@@ -162,13 +229,63 @@ class LEVELDB_EXPORT Env {
   // A future release will remove this method.
   virtual Status DeleteDir(const std::filesystem::path& dirname);
 
+  Status DeleteDir(const std::string& dirname) = delete;
+  Status DeleteDir(const std::wstring& dirname) = delete;
+  Status DeleteDir(const char* dirname) = delete;
+  Status DeleteDir(const wchar_t* dirname) = delete;
+
   // Store the size of fname in *file_size.
   virtual Status GetFileSize(const std::filesystem::path& fname,
                              uint64_t* file_size) = 0;
 
+  Status GetFileSize(const std::string& fname, uint64_t* file_size) = delete;
+  Status GetFileSize(const std::wstring& fname, uint64_t* file_size) = delete;
+  Status GetFileSize(const char* fname, uint64_t* file_size) = delete;
+  Status GetFileSize(const wchar_t* fname, uint64_t* file_size) = delete;
+
   // Rename file src to target.
   virtual Status RenameFile(const std::filesystem::path& src,
                             const std::filesystem::path& target) = 0;
+
+  Status RenameFile(const std::string& src,
+                    const std::filesystem::path& target) = delete;
+  Status RenameFile(const std::string& src, const std::string& target) = delete;
+  Status RenameFile(const std::string& src,
+                    const std::wstring& target) = delete;
+  Status RenameFile(const std::string& src, const char*& target) = delete;
+  Status RenameFile(const std::string& src, const wchar_t* target) = delete;
+
+  Status RenameFile(const std::wstring& src,
+                    const std::filesystem::path& target) = delete;
+  Status RenameFile(const std::wstring& src,
+                    const std::string& target) = delete;
+  Status RenameFile(const std::wstring& src,
+                    const std::wstring& target) = delete;
+  Status RenameFile(const std::wstring& src, const char* target) = delete;
+  Status RenameFile(const std::wstring& src, const wchar_t* target) = delete;
+
+  Status RenameFile(const char* src,
+                    const std::filesystem::path& target) = delete;
+  Status RenameFile(const char* src, const std::string& target) = delete;
+  Status RenameFile(const char* src, const std::wstring& target) = delete;
+  Status RenameFile(const char* src, const char* target) = delete;
+  Status RenameFile(const char* src, const wchar_t* target) = delete;
+
+  Status RenameFile(const wchar_t* src,
+                    const std::filesystem::path& target) = delete;
+  Status RenameFile(const wchar_t* src, const std::string& target) = delete;
+  Status RenameFile(const wchar_t* src, const std::wstring& target) = delete;
+  Status RenameFile(const wchar_t* src, const char* target) = delete;
+  Status RenameFile(const wchar_t* src, const wchar_t* target) = delete;
+
+  Status RenameFile(const std::filesystem::path& src,
+                    const std::string& target) = delete;
+  Status RenameFile(const std::filesystem::path& src,
+                    const std::wstring& target) = delete;
+  Status RenameFile(const std::filesystem::path& src,
+                    const char* target) = delete;
+  Status RenameFile(const std::filesystem::path& src,
+                    const wchar_t* target) = delete;
 
   // Lock the specified file.  Used to prevent concurrent access to
   // the same db by multiple processes.  On failure, stores nullptr in
@@ -186,6 +303,11 @@ class LEVELDB_EXPORT Env {
   // May create the named file if it does not already exist.
   virtual Status LockFile(const std::filesystem::path& fname,
                           FileLock** lock) = 0;
+
+  Status LockFile(const std::string& fname, FileLock** lock) = delete;
+  Status LockFile(const std::wstring& fname, FileLock** lock) = delete;
+  Status LockFile(const char* fname, FileLock** lock) = delete;
+  Status LockFile(const wchar_t* fname, FileLock** lock) = delete;
 
   // Release the lock acquired by a previous successful call to LockFile.
   // REQUIRES: lock was returned by a successful LockFile() call
@@ -213,6 +335,11 @@ class LEVELDB_EXPORT Env {
   // Create and return a log file for storing informational messages.
   virtual Status NewLogger(const std::filesystem::path& fname,
                            Logger** result) = 0;
+
+  Status NewLogger(const std::string& fname, Logger** result) = delete;
+  Status NewLogger(const std::wstring& fname, Logger** result) = delete;
+  Status NewLogger(const char* fname, Logger** result) = delete;
+  Status NewLogger(const wchar_t* fname, Logger** result) = delete;
 
   // Returns the number of micro-seconds since some fixed point in time. Only
   // useful for computing deltas of time.

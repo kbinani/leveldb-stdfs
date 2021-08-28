@@ -1002,7 +1002,7 @@ class Benchmark {
     std::snprintf(fname, sizeof(fname), "%s/heap-%04d", FLAGS_db,
                   ++heap_counter_);
     WritableFile* file;
-    Status s = g_env->NewWritableFile(fname, &file);
+    Status s = g_env->NewWritableFile(std::filesystem::path(fname), &file);
     if (!s.ok()) {
       std::fprintf(stderr, "%s\n", s.ToString().c_str());
       return;
@@ -1011,7 +1011,7 @@ class Benchmark {
     delete file;
     if (!ok) {
       std::fprintf(stderr, "heap profiling not supported\n");
-      g_env->RemoveFile(fname);
+      g_env->RemoveFile(std::filesystem::path(fname));
     }
   }
 };
