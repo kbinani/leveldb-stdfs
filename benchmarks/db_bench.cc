@@ -999,10 +999,9 @@ class Benchmark {
 
   void HeapProfile() {
     char fname[100];
-    std::snprintf(fname, sizeof(fname), "%s/heap-%04d", FLAGS_db,
-                  ++heap_counter_);
+    std::snprintf(fname, sizeof(fname), "heap-%04d", ++heap_counter_);
     WritableFile* file;
-    Status s = g_env->NewWritableFile(std::filesystem::path(fname), &file);
+    Status s = g_env->NewWritableFile(FLAGS_db / fname, &file);
     if (!s.ok()) {
       std::fprintf(stderr, "%s\n", s.ToString().c_str());
       return;

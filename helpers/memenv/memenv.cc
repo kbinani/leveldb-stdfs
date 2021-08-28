@@ -237,7 +237,7 @@ class InMemoryEnv : public EnvWrapper {
     pfname.make_preferred();
     if (file_map_.find(pfname.native()) == file_map_.end()) {
       *result = nullptr;
-      return Status::IOError(fname, "File not found");
+      return Status::IOError(fname.native(), "File not found");
     }
 
     *result = new SequentialFileImpl(file_map_[pfname.native()]);
@@ -251,7 +251,7 @@ class InMemoryEnv : public EnvWrapper {
     pfname.make_preferred();
     if (file_map_.find(pfname.native()) == file_map_.end()) {
       *result = nullptr;
-      return Status::IOError(fname, "File not found");
+      return Status::IOError(fname.native(), "File not found");
     }
 
     *result = new RandomAccessFileImpl(file_map_[pfname.native()]);
@@ -341,7 +341,7 @@ class InMemoryEnv : public EnvWrapper {
     std::filesystem::path pfname = fname;
     pfname.make_preferred();
     if (file_map_.find(pfname.native()) == file_map_.end()) {
-      return Status::IOError(fname, "File not found");
+      return Status::IOError(fname.native(), "File not found");
     }
 
     RemoveFileInternal(pfname);
@@ -362,7 +362,7 @@ class InMemoryEnv : public EnvWrapper {
     std::filesystem::path pfname = fname;
     pfname.make_preferred();
     if (file_map_.find(pfname.native()) == file_map_.end()) {
-      return Status::IOError(fname, "File not found");
+      return Status::IOError(fname.native(), "File not found");
     }
 
     *file_size = file_map_[pfname.native()]->Size();
@@ -375,7 +375,7 @@ class InMemoryEnv : public EnvWrapper {
     std::filesystem::path psrc = src;
     psrc.make_preferred();
     if (file_map_.find(psrc.native()) == file_map_.end()) {
-      return Status::IOError(src, "File not found");
+      return Status::IOError(src.native(), "File not found");
     }
 
     std::filesystem::path ptarget = target;

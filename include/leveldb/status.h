@@ -53,7 +53,7 @@ class LEVELDB_EXPORT Status {
   static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kNotSupported, msg, msg2);
   }
-  static Status NotSupported(const std::string& msg, const std::wstring& msg2) {
+  static Status NotSupported(const Slice& msg, const std::wstring& msg2) {
     return Status(kNotSupported, msg, Narrow(msg2));
   }
   static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {

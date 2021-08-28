@@ -91,9 +91,9 @@ std::string Status::Narrow(const std::wstring& wstr) {
                       size_needed, NULL, NULL);
   return strTo;
 #else
-  size_t len = s.size();
+  size_t len = wstr.size();
   std::vector<char> buf(len + 1, 0);
-  size_t converted = wcstombs(buf.data(), s.c_str(), buf.size());
+  size_t converted = wcstombs(buf.data(), wstr.c_str(), buf.size());
   std::string ret;
   if (converted != static_cast<std::size_t>(-1)) {
     ret.assign(buf.data(), converted);

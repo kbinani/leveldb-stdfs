@@ -435,7 +435,7 @@ class FaultInjectionTest : public testing::Test {
         }
       } else if (s.ok()) {
         std::fprintf(stderr, "Expected an error at %d, but was OK\n", i);
-        s = Status::IOError(dbname_, "Expected value error:");
+        s = Status::IOError(dbname_.native(), "Expected value error:");
       } else {
         s = Status::OK();  // An expected error
       }

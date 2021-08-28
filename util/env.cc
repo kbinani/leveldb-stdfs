@@ -20,7 +20,7 @@ Env::~Env() = default;
 
 Status Env::NewAppendableFile(const std::filesystem::path& fname,
                               WritableFile** result) {
-  return Status::NotSupported("NewAppendableFile", fname);
+  return Status::NotSupported("NewAppendableFile", fname.native());
 }
 
 Status Env::RemoveDir(const std::filesystem::path& dirname) {

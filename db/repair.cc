@@ -103,7 +103,7 @@ class Repairer {
       return status;
     }
     if (filenames.empty()) {
-      return Status::IOError(dbname_, "repair found no files");
+      return Status::IOError(dbname_.native(), "repair found no files");
     }
 
     uint64_t number;

@@ -313,11 +313,11 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
       }
     } else {
       return Status::InvalidArgument(
-          dbname_, "does not exist (create_if_missing is false)");
+          dbname_.native(), "does not exist (create_if_missing is false)");
     }
   } else {
     if (options_.error_if_exists) {
-      return Status::InvalidArgument(dbname_,
+      return Status::InvalidArgument(dbname_.native(),
                                      "exists (error_if_exists is true)");
     }
   }
@@ -358,7 +358,8 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
     char buf[50];
     std::snprintf(buf, sizeof(buf), "%d missing files; e.g.",
                   static_cast<int>(expected.size()));
-    return Status::Corruption(buf, TableFileName(dbname_, *(expected.begin())));
+    return Status::Corruption(
+        buf, TableFileName(dbname_, *expected.begin()).native());
   }
 
   // Recover in the order in which the logs were generated

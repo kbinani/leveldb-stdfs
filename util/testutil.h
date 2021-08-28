@@ -63,7 +63,7 @@ class ErrorEnv : public EnvWrapper {
     if (writable_file_error_) {
       ++num_writable_file_errors_;
       *result = nullptr;
-      return Status::IOError(fname, "fake error");
+      return Status::IOError(fname.native(), "fake error");
     }
     return target()->NewWritableFile(fname, result);
   }
@@ -73,7 +73,7 @@ class ErrorEnv : public EnvWrapper {
     if (writable_file_error_) {
       ++num_writable_file_errors_;
       *result = nullptr;
-      return Status::IOError(fname, "fake error");
+      return Status::IOError(fname.native(), "fake error");
     }
     return target()->NewAppendableFile(fname, result);
   }

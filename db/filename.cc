@@ -90,18 +90,17 @@ std::filesystem::path OldInfoLogFileName(const std::filesystem::path& dbname) {
 //    dbname/[0-9]+.(log|sst|ldb)
 bool ParseFileName(const std::filesystem::path& filename, uint64_t* number,
                    FileType* type) {
-  namespace fs = std::filesystem;
-  fs::path::string_type rest(filename);
-  if (rest == _T("CURRENT")) {
+  std::wstring rest = filename.wstring();
+  if (rest == L"CURRENT") {
     *number = 0;
     *type = kCurrentFile;
-  } else if (rest == _T("LOCK")) {
+  } else if (rest == L"LOCK") {
     *number = 0;
     *type = kDBLockFile;
-  } else if (rest == _T("LOG") || rest == _T("LOG.old")) {
+  } else if (rest == L"LOG" || rest == L"LOG.old") {
     *number = 0;
     *type = kInfoLogFile;
-  } else if (rest.find(_T("MANIFEST-")) == 0) {
+  } else if (rest.find(L"MANIFEST-") == 0) {
     rest = rest.substr(9);
     uint64_t num;
     if (!ConsumeDecimalNumber(&rest, &num)) {
@@ -119,12 +118,12 @@ bool ParseFileName(const std::filesystem::path& filename, uint64_t* number,
     if (!ConsumeDecimalNumber(&rest, &num)) {
       return false;
     }
-    fs::path::string_type suffix = rest;
-    if (suffix == _T(".log")) {
+    std::wstring suffix = rest;
+    if (suffix == L".log") {
       *type = kLogFile;
-    } else if (suffix == _T(".sst") || suffix == _T(".ldb")) {
+    } else if (suffix == L".sst" || suffix == L".ldb") {
       *type = kTableFile;
-    } else if (suffix == _T(".dbtmp")) {
+    } else if (suffix == L".dbtmp") {
       *type = kTempFile;
     } else {
       return false;

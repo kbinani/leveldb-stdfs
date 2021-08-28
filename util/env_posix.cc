@@ -497,7 +497,7 @@ class PosixEnv : public Env {
     std::abort();
   }
 
-  Status NewSequentialFile(const std::string& filename,
+  Status NewSequentialFile(const std::filesystem::path& filename,
                            SequentialFile** result) override {
     int fd = ::open(filename.c_str(), O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
@@ -509,7 +509,7 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status NewRandomAccessFile(const std::string& filename,
+  Status NewRandomAccessFile(const std::filesystem::path& filename,
                              RandomAccessFile** result) override {
     *result = nullptr;
     int fd = ::open(filename.c_str(), O_RDONLY | kOpenBaseFlags);
@@ -542,7 +542,7 @@ class PosixEnv : public Env {
     return status;
   }
 
-  Status NewWritableFile(const std::string& filename,
+  Status NewWritableFile(const std::filesystem::path& filename,
                          WritableFile** result) override {
     int fd = ::open(filename.c_str(),
                     O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
@@ -555,7 +555,7 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status NewAppendableFile(const std::string& filename,
+  Status NewAppendableFile(const std::filesystem::path& filename,
                            WritableFile** result) override {
     int fd = ::open(filename.c_str(),
                     O_APPEND | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
@@ -568,12 +568,12 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  bool FileExists(const std::string& filename) override {
+  bool FileExists(const std::filesystem::path& filename) override {
     return ::access(filename.c_str(), F_OK) == 0;
   }
 
-  Status GetChildren(const std::string& directory_path,
-                     std::vector<std::string>* result) override {
+  Status GetChildren(const std::filesystem::path& directory_path,
+                     std::vector<std::filesystem::path>* result) override {
     result->clear();
     ::DIR* dir = ::opendir(directory_path.c_str());
     if (dir == nullptr) {
@@ -587,28 +587,29 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status RemoveFile(const std::string& filename) override {
+  Status RemoveFile(const std::filesystem::path& filename) override {
     if (::unlink(filename.c_str()) != 0) {
       return PosixError(filename, errno);
     }
     return Status::OK();
   }
 
-  Status CreateDir(const std::string& dirname) override {
+  Status CreateDir(const std::filesystem::path& dirname) override {
     if (::mkdir(dirname.c_str(), 0755) != 0) {
       return PosixError(dirname, errno);
     }
     return Status::OK();
   }
 
-  Status RemoveDir(const std::string& dirname) override {
+  Status RemoveDir(const std::filesystem::path& dirname) override {
     if (::rmdir(dirname.c_str()) != 0) {
       return PosixError(dirname, errno);
     }
     return Status::OK();
   }
 
-  Status GetFileSize(const std::string& filename, uint64_t* size) override {
+  Status GetFileSize(const std::filesystem::path& filename,
+                     uint64_t* size) override {
     struct ::stat file_stat;
     if (::stat(filename.c_str(), &file_stat) != 0) {
       *size = 0;
@@ -618,14 +619,16 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status RenameFile(const std::string& from, const std::string& to) override {
+  Status RenameFile(const std::filesystem::path& from,
+                    const std::filesystem::path& to) override {
     if (std::rename(from.c_str(), to.c_str()) != 0) {
       return PosixError(from, errno);
     }
     return Status::OK();
   }
 
-  Status LockFile(const std::string& filename, FileLock** lock) override {
+  Status LockFile(const std::filesystem::path& filename,
+                  FileLock** lock) override {
     *lock = nullptr;
 
     int fd = ::open(filename.c_str(), O_RDWR | O_CREAT | kOpenBaseFlags, 0644);
@@ -635,14 +638,15 @@ class PosixEnv : public Env {
 
     if (!locks_.Insert(filename)) {
       ::close(fd);
-      return Status::IOError("lock " + filename, "already held by process");
+      return Status::IOError("lock " + filename.native(),
+                             "already held by process");
     }
 
     if (LockOrUnlock(fd, true) == -1) {
       int lock_errno = errno;
       ::close(fd);
       locks_.Remove(filename);
-      return PosixError("lock " + filename, lock_errno);
+      return PosixError("lock " + filename.native(), lock_errno);
     }
 
     *lock = new PosixFileLock(fd, filename);
@@ -669,7 +673,7 @@ class PosixEnv : public Env {
     new_thread.detach();
   }
 
-  Status GetTestDirectory(std::string* result) override {
+  Status GetTestDirectory(std::filesystem::path* result) override {
     const char* env = std::getenv("TEST_TMPDIR");
     if (env && env[0] != '\0') {
       *result = env;
@@ -686,7 +690,8 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status NewLogger(const std::string& filename, Logger** result) override {
+  Status NewLogger(const std::filesystem::path& filename,
+                   Logger** result) override {
     int fd = ::open(filename.c_str(),
                     O_APPEND | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
     if (fd < 0) {
