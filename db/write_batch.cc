@@ -18,7 +18,9 @@
 #include "db/dbformat.h"
 #include "db/memtable.h"
 #include "db/write_batch_internal.h"
+
 #include "leveldb/db.h"
+
 #include "util/coding.h"
 
 namespace leveldb {

@@ -33,6 +33,7 @@
 
 #include "leveldb/comparator.h"
 #include "leveldb/options.h"
+
 #include "util/coding.h"
 
 namespace leveldb {

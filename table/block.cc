@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "leveldb/comparator.h"
+
 #include "table/format.h"
 #include "util/coding.h"
 #include "util/logging.h"

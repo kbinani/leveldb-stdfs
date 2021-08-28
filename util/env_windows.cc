@@ -7,8 +7,6 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif  // ifndef NOMINMAX
-#include <windows.h>
-
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -23,9 +21,11 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 #include "leveldb/env.h"
 #include "leveldb/slice.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/env_windows_test_helper.h"

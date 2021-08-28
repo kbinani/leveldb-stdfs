@@ -6,11 +6,12 @@
 
 #include <algorithm>
 
-#include "gtest/gtest.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/mutexlock.h"
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 

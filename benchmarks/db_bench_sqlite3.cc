@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <sqlite3.h>
-
 #include <cstdio>
 #include <cstdlib>
+#include <sqlite3.h>
 
 #include "util/histogram.h"
 #include "util/random.h"

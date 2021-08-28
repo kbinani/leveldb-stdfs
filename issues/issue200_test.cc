@@ -6,9 +6,11 @@
 // to forward, the current key can be yielded unexpectedly if a new
 // mutation has been added just before the current key.
 
-#include "gtest/gtest.h"
 #include "leveldb/db.h"
+
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 

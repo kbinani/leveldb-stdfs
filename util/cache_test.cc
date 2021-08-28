@@ -6,8 +6,9 @@
 
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "util/coding.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 

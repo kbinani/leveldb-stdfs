@@ -9,10 +9,12 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "leveldb/db.h"
 #include "leveldb/write_batch.h"
+
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 
