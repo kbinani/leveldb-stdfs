@@ -2366,6 +2366,6 @@ BENCHMARK(BM_LogAndApply)->Arg(1)->Arg(100)->Arg(10000)->Arg(100000);
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
-  // benchmark::RunSpecifiedBenchmarks();
+  benchmark::RunSpecifiedBenchmarks();
   return RUN_ALL_TESTS();
 }
