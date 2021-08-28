@@ -685,31 +685,6 @@ class WindowsEnv : public Env {
       GUARDED_BY(background_work_mutex_);
 
   Limiter mmap_limiter_;  // Thread-safe.
-
-  // Converts a Windows wide multi-byte UTF-16 string to a UTF-8 string.
-  // See http://utf8everywhere.org/#windows
-  std::string toUtf8(const std::wstring& wstr) {
-    if (wstr.empty()) return std::string();
-    int size_needed = WideCharToMultiByte(
-        CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
-    std::string strTo(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0],
-                        size_needed, NULL, NULL);
-    return strTo;
-  }
-
-  // Converts a UTF-8 string to a Windows UTF-16 multi-byte wide character
-  // string.
-  // See http://utf8everywhere.org/#windows
-  std::wstring toUtf16(const std::string& str) {
-    if (str.empty()) return std::wstring();
-    int size_needed =
-        MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
-    std::wstring strTo(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &strTo[0],
-                        size_needed);
-    return strTo;
-  }
 };
 
 // Return the maximum number of concurrent mmaps.
