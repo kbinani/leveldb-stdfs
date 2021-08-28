@@ -1397,8 +1397,7 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
   if (in.starts_with("num-files-at-level")) {
     in.remove_prefix(strlen("num-files-at-level"));
     uint64_t level;
-    std::string s = in.ToString();
-    bool ok = ConsumeDecimalNumber(&s, &level) && s.empty();
+    bool ok = ConsumeDecimalNumber(&in, &level) && in.empty();
     if (!ok || level >= config::kNumLevels) {
       return false;
     } else {

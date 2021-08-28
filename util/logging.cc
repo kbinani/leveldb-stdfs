@@ -46,7 +46,7 @@ std::string EscapeString(const Slice& value) {
   return r;
 }
 
-bool ConsumeDecimalNumber(std::string* in, uint64_t* val) {
+bool ConsumeDecimalNumber(Slice* in, uint64_t* val) {
   // Constants that will be optimized away.
   constexpr const uint64_t kMaxUint64 = std::numeric_limits<uint64_t>::max();
   constexpr const char kLastDigitOfMaxUint64 =
@@ -75,7 +75,7 @@ bool ConsumeDecimalNumber(std::string* in, uint64_t* val) {
 
   *val = value;
   const size_t digits_consumed = current - start;
-  *in = in->substr(digits_consumed);
+  in->remove_prefix(digits_consumed);
   return digits_consumed != 0;
 }
 

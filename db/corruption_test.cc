@@ -89,8 +89,7 @@ class CorruptionTest : public testing::Test {
         // Ignore boundary keys.
         continue;
       }
-      std::string s = in.ToString();
-      if (!ConsumeDecimalNumber(&s, &key) || !s.empty() ||
+      if (!ConsumeDecimalNumber(&in, &key) || !in.empty() ||
           key < next_expected) {
         bad_keys++;
         continue;
