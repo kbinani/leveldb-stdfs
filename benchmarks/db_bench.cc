@@ -119,7 +119,7 @@ static bool FLAGS_use_existing_db = false;
 static bool FLAGS_reuse_logs = false;
 
 // Use the db with the following name.
-static const char* FLAGS_db = nullptr;
+static std::filesystem::path FLAGS_db;
 
 namespace leveldb {
 
@@ -472,11 +472,11 @@ class Benchmark {
         heap_counter_(0),
         count_comparator_(BytewiseComparator()),
         total_thread_count_(0) {
-    std::vector<std::string> files;
+    std::vector<std::filesystem::path> files;
     g_env->GetChildren(FLAGS_db, &files);
     for (size_t i = 0; i < files.size(); i++) {
-      if (Slice(files[i]).starts_with("heap-")) {
-        g_env->RemoveFile(std::string(FLAGS_db) + "/" + files[i]);
+      if (files[i].native().find(_T("heap-")) == 0) {
+        g_env->RemoveFile(FLAGS_db / files[i]);
       }
     }
     if (!FLAGS_use_existing_db) {
@@ -1023,7 +1023,7 @@ int main(int argc, char** argv) {
   FLAGS_max_file_size = leveldb::Options().max_file_size;
   FLAGS_block_size = leveldb::Options().block_size;
   FLAGS_open_files = leveldb::Options().max_open_files;
-  std::string default_db_path;
+  std::filesystem::path default_db_path;
 
   for (int i = 1; i < argc; i++) {
     double d;
@@ -1078,9 +1078,9 @@ int main(int argc, char** argv) {
   leveldb::g_env = leveldb::Env::Default();
 
   // Choose a location for the test database if none given with --db=<path>
-  if (FLAGS_db == nullptr) {
+  if (FLAGS_db.empty()) {
     leveldb::g_env->GetTestDirectory(&default_db_path);
-    default_db_path += "/dbbench";
+    default_db_path = default_db_path / "dbbench";
     FLAGS_db = default_db_path.c_str();
   }
 

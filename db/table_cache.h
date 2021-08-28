@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <string>
+#include <filesystem>
 
 #include "db/dbformat.h"
 #include "leveldb/cache.h"
@@ -21,7 +22,7 @@ class Env;
 
 class TableCache {
  public:
-  TableCache(const std::string& dbname, const Options& options, int entries);
+  TableCache(const std::filesystem::path& dbname, const Options& options, int entries);
   ~TableCache();
 
   // Return an iterator for the specified file number (the corresponding
@@ -47,7 +48,7 @@ class TableCache {
   Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);
 
   Env* const env_;
-  const std::string dbname_;
+  const std::filesystem::path dbname_;
   const Options& options_;
   Cache* cache_;
 };

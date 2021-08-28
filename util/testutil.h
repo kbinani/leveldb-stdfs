@@ -55,7 +55,7 @@ class ErrorEnv : public EnvWrapper {
         num_writable_file_errors_(0) {}
   ~ErrorEnv() override { delete target(); }
 
-  Status NewWritableFile(const std::string& fname,
+  Status NewWritableFile(const std::filesystem::path& fname,
                          WritableFile** result) override {
     if (writable_file_error_) {
       ++num_writable_file_errors_;
@@ -65,7 +65,7 @@ class ErrorEnv : public EnvWrapper {
     return target()->NewWritableFile(fname, result);
   }
 
-  Status NewAppendableFile(const std::string& fname,
+  Status NewAppendableFile(const std::filesystem::path& fname,
                            WritableFile** result) override {
     if (writable_file_error_) {
       ++num_writable_file_errors_;

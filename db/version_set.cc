@@ -730,7 +730,7 @@ class VersionSet::Builder {
   }
 };
 
-VersionSet::VersionSet(const std::string& dbname, const Options* options,
+VersionSet::VersionSet(const std::filesystem::path& dbname, const Options* options,
                        TableCache* table_cache,
                        const InternalKeyComparator* cmp)
     : env_(options->env),
@@ -799,7 +799,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
 
   // Initialize new descriptor log file if necessary by creating
   // a temporary file that contains a snapshot of the current version.
-  std::string new_manifest_file;
+  std::filesystem::path new_manifest_file;
   Status s;
   if (descriptor_log_ == nullptr) {
     // No reason to unlock *mu here since we only hit this path in the
@@ -878,7 +878,7 @@ Status VersionSet::Recover(bool* save_manifest) {
   }
   current.resize(current.size() - 1);
 
-  std::string dscname = dbname_ + "/" + current;
+  std::filesystem::path dscname = dbname_ / current;
   SequentialFile* file;
   s = env_->NewSequentialFile(dscname, &file);
   if (!s.ok()) {
@@ -992,8 +992,8 @@ Status VersionSet::Recover(bool* save_manifest) {
   return s;
 }
 
-bool VersionSet::ReuseManifest(const std::string& dscname,
-                               const std::string& dscbase) {
+bool VersionSet::ReuseManifest(const std::filesystem::path& dscname,
+                               const std::filesystem::path& dscbase) {
   if (!options_->reuse_logs) {
     return false;
   }

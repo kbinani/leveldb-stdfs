@@ -75,16 +75,16 @@ class TestEnv : public EnvWrapper {
 
   void SetIgnoreDotFiles(bool ignored) { ignore_dot_files_ = ignored; }
 
-  Status GetChildren(const std::string& dir,
-                     std::vector<std::string>* result) override {
+  Status GetChildren(const std::filesystem::path& dir,
+                     std::vector<std::filesystem::path>* result) override {
     Status s = target()->GetChildren(dir, result);
     if (!s.ok() || !ignore_dot_files_) {
       return s;
     }
 
-    std::vector<std::string>::iterator it = result->begin();
+    std::vector<std::filesystem::path>::iterator it = result->begin();
     while (it != result->end()) {
-      if ((*it == ".") || (*it == "..")) {
+      if ((*it == _T(".")) || (*it == _T(".."))) {
         it = result->erase(it);
       } else {
         ++it;
@@ -437,7 +437,7 @@ class DBTest : public testing::Test {
   }
 
   int CountFiles() {
-    std::vector<std::string> files;
+    std::vector<std::filesystem::path> files;
     env_->GetChildren(dbname_, &files);
     return static_cast<int>(files.size());
   }
@@ -500,7 +500,7 @@ class DBTest : public testing::Test {
   }
 
   bool DeleteAnSSTFile() {
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     EXPECT_LEVELDB_OK(env_->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
@@ -515,15 +515,15 @@ class DBTest : public testing::Test {
 
   // Returns number of files renamed.
   int RenameLDBToSST() {
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     EXPECT_LEVELDB_OK(env_->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
     int files_renamed = 0;
     for (size_t i = 0; i < filenames.size(); i++) {
       if (ParseFileName(filenames[i], &number, &type) && type == kTableFile) {
-        const std::string from = TableFileName(dbname_, number);
-        const std::string to = SSTTableFileName(dbname_, number);
+        const std::filesystem::path from = TableFileName(dbname_, number);
+        const std::filesystem::path to = SSTTableFileName(dbname_, number);
         EXPECT_LEVELDB_OK(env_->RenameFile(from, to));
         files_renamed++;
       }
@@ -1691,7 +1691,7 @@ TEST_F(DBTest, DestroyEmptyDir) {
 
   ASSERT_LEVELDB_OK(env.CreateDir(dbname));
   ASSERT_TRUE(env.FileExists(dbname));
-  std::vector<std::string> children;
+  std::vector<std::filesystem::path> children;
   ASSERT_LEVELDB_OK(env.GetChildren(dbname, &children));
   // The stock Env's do not filter out '.' and '..' special files.
   ASSERT_EQ(2, children.size());

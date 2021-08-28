@@ -42,7 +42,7 @@ void ConsumeDecimalNumberRoundtripTest(uint64_t number,
   std::string decimal_number = NumberToString(number);
   std::string input_string = decimal_number + padding;
   Slice input(input_string);
-  Slice output = input;
+  std::string output = input.ToString();
   uint64_t result;
   ASSERT_TRUE(ConsumeDecimalNumber(&output, &result));
   ASSERT_EQ(number, result);
@@ -91,8 +91,7 @@ TEST(Logging, ConsumeDecimalNumberRoundtripWithPadding) {
 }
 
 void ConsumeDecimalNumberOverflowTest(const std::string& input_string) {
-  Slice input(input_string);
-  Slice output = input;
+  std::string output = input_string;
   uint64_t result;
   ASSERT_EQ(false, ConsumeDecimalNumber(&output, &result));
 }
@@ -118,12 +117,11 @@ TEST(Logging, ConsumeDecimalNumberOverflow) {
 }
 
 void ConsumeDecimalNumberNoDigitsTest(const std::string& input_string) {
-  Slice input(input_string);
-  Slice output = input;
+  std::string output = input_string;
   uint64_t result;
   ASSERT_EQ(false, ConsumeDecimalNumber(&output, &result));
-  ASSERT_EQ(input.data(), output.data());
-  ASSERT_EQ(input.size(), output.size());
+  ASSERT_EQ(input_string.data(), output.data());
+  ASSERT_EQ(input_string.size(), output.size());
 }
 
 TEST(Logging, ConsumeDecimalNumberNoDigits) {

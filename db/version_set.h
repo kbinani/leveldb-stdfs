@@ -18,6 +18,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <filesystem>
 
 #include "db/dbformat.h"
 #include "db/version_edit.h"
@@ -166,7 +167,7 @@ class Version {
 
 class VersionSet {
  public:
-  VersionSet(const std::string& dbname, const Options* options,
+  VersionSet(const std::filesystem::path& dbname, const Options* options,
              TableCache* table_cache, const InternalKeyComparator*);
   VersionSet(const VersionSet&) = delete;
   VersionSet& operator=(const VersionSet&) = delete;
@@ -275,7 +276,7 @@ class VersionSet {
   friend class Compaction;
   friend class Version;
 
-  bool ReuseManifest(const std::string& dscname, const std::string& dscbase);
+  bool ReuseManifest(const std::filesystem::path& dscname, const std::filesystem::path& dscbase);
 
   void Finalize(Version* v);
 
@@ -294,7 +295,7 @@ class VersionSet {
   void AppendVersion(Version* v);
 
   Env* const env_;
-  const std::string dbname_;
+  const std::filesystem::path dbname_;
   const Options* const options_;
   TableCache* const table_cache_;
   const InternalKeyComparator icmp_;

@@ -25,11 +25,16 @@ class EnvWindowsTest : public testing::Test {
 
 TEST_F(EnvWindowsTest, TestOpenOnRead) {
   // Write some test data to a single file that will be opened |n| times.
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
-  std::string test_file = test_dir + "/open_on_read.txt";
+  std::filesystem::path test_file = test_dir / "open_on_read.txt";
 
+#if defined(_WIN32)
+  FILE* f = nullptr;
+  _wfopen_s(&f, test_file.c_str(), L"w");
+#else
   FILE* f = std::fopen(test_file.c_str(), "w");
+#endif
   ASSERT_TRUE(f != nullptr);
   const char kFileData[] = "abcdefghijklmnopqrstuvwxyz";
   fputs(kFileData, f);

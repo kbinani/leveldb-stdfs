@@ -36,22 +36,22 @@ class FaultInjectionTestEnv;
 namespace {
 
 // Assume a filename, and not a directory name like "/foo/bar/"
-static std::string GetDirName(const std::string& filename) {
-  size_t found = filename.find_last_of("/\\");
+static std::filesystem::path::string_type GetDirName(const std::filesystem::path::string_type& filename) {
+  size_t found = filename.find_last_of(_T("/\\"));
   if (found == std::string::npos) {
-    return "";
+    return _T("");
   } else {
     return filename.substr(0, found);
   }
 }
 
-Status SyncDir(const std::string& dir) {
+Status SyncDir(const std::filesystem::path& dir) {
   // As this is a test it isn't required to *actually* sync this directory.
   return Status::OK();
 }
 
 // A basic file truncation function suitable for this test.
-Status Truncate(const std::string& filename, uint64_t length) {
+Status Truncate(const std::filesystem::path& filename, uint64_t length) {
   leveldb::Env* env = leveldb::Env::Default();
 
   SequentialFile* orig_file;
@@ -63,7 +63,7 @@ Status Truncate(const std::string& filename, uint64_t length) {
   s = orig_file->Read(length, &result, scratch);
   delete orig_file;
   if (s.ok()) {
-    std::string tmp_name = GetDirName(filename) + "/truncate.tmp";
+    std::filesystem::path tmp_name = std::filesystem::path(GetDirName(filename)) / "truncate.tmp";
     WritableFile* tmp_file;
     s = env->NewWritableFile(tmp_name, &tmp_file);
     if (s.ok()) {
@@ -83,12 +83,12 @@ Status Truncate(const std::string& filename, uint64_t length) {
 }
 
 struct FileState {
-  std::string filename_;
+  std::filesystem::path filename_;
   int64_t pos_;
   int64_t pos_at_last_sync_;
   int64_t pos_at_last_flush_;
 
-  FileState(const std::string& filename)
+  FileState(const std::filesystem::path& filename)
       : filename_(filename),
         pos_(-1),
         pos_at_last_sync_(-1),
@@ -129,20 +129,20 @@ class FaultInjectionTestEnv : public EnvWrapper {
   FaultInjectionTestEnv()
       : EnvWrapper(Env::Default()), filesystem_active_(true) {}
   ~FaultInjectionTestEnv() override = default;
-  Status NewWritableFile(const std::string& fname,
+  Status NewWritableFile(const std::filesystem::path& fname,
                          WritableFile** result) override;
-  Status NewAppendableFile(const std::string& fname,
+  Status NewAppendableFile(const std::filesystem::path& fname,
                            WritableFile** result) override;
-  Status RemoveFile(const std::string& f) override;
-  Status RenameFile(const std::string& s, const std::string& t) override;
+  Status RemoveFile(const std::filesystem::path& f) override;
+  Status RenameFile(const std::filesystem::path& s, const std::filesystem::path& t) override;
 
   void WritableFileClosed(const FileState& state);
   Status DropUnsyncedFileData();
   Status RemoveFilesCreatedAfterLastDirSync();
   void DirWasSynced();
-  bool IsFileCreatedSinceLastDirSync(const std::string& filename);
+  bool IsFileCreatedSinceLastDirSync(const std::filesystem::path& filename);
   void ResetState();
-  void UntrackFile(const std::string& f);
+  void UntrackFile(const std::filesystem::path& f);
   // Setting the filesystem to inactive is the test equivalent to simulating a
   // system reset. Setting to inactive will freeze our saved filesystem state so
   // that it will stop being recorded. It can then be reset back to the state at
@@ -158,8 +158,8 @@ class FaultInjectionTestEnv : public EnvWrapper {
 
  private:
   port::Mutex mutex_;
-  std::map<std::string, FileState> db_file_state_ GUARDED_BY(mutex_);
-  std::set<std::string> new_files_since_last_dir_sync_ GUARDED_BY(mutex_);
+  std::map<std::filesystem::path, FileState> db_file_state_ GUARDED_BY(mutex_);
+  std::set<std::filesystem::path> new_files_since_last_dir_sync_ GUARDED_BY(mutex_);
   bool filesystem_active_ GUARDED_BY(mutex_);  // Record flushes, syncs, writes
 };
 
@@ -227,7 +227,7 @@ Status TestWritableFile::Sync() {
   return s;
 }
 
-Status FaultInjectionTestEnv::NewWritableFile(const std::string& fname,
+Status FaultInjectionTestEnv::NewWritableFile(const std::filesystem::path& fname,
                                               WritableFile** result) {
   WritableFile* actual_writable_file;
   Status s = target()->NewWritableFile(fname, &actual_writable_file);
@@ -245,7 +245,7 @@ Status FaultInjectionTestEnv::NewWritableFile(const std::string& fname,
   return s;
 }
 
-Status FaultInjectionTestEnv::NewAppendableFile(const std::string& fname,
+Status FaultInjectionTestEnv::NewAppendableFile(const std::filesystem::path& fname,
                                                 WritableFile** result) {
   WritableFile* actual_writable_file;
   Status s = target()->NewAppendableFile(fname, &actual_writable_file);
@@ -286,19 +286,19 @@ void FaultInjectionTestEnv::DirWasSynced() {
 }
 
 bool FaultInjectionTestEnv::IsFileCreatedSinceLastDirSync(
-    const std::string& filename) {
+    const std::filesystem::path& filename) {
   MutexLock l(&mutex_);
   return new_files_since_last_dir_sync_.find(filename) !=
          new_files_since_last_dir_sync_.end();
 }
 
-void FaultInjectionTestEnv::UntrackFile(const std::string& f) {
+void FaultInjectionTestEnv::UntrackFile(const std::filesystem::path& f) {
   MutexLock l(&mutex_);
   db_file_state_.erase(f);
   new_files_since_last_dir_sync_.erase(f);
 }
 
-Status FaultInjectionTestEnv::RemoveFile(const std::string& f) {
+Status FaultInjectionTestEnv::RemoveFile(const std::filesystem::path& f) {
   Status s = EnvWrapper::RemoveFile(f);
   EXPECT_LEVELDB_OK(s);
   if (s.ok()) {
@@ -307,8 +307,8 @@ Status FaultInjectionTestEnv::RemoveFile(const std::string& f) {
   return s;
 }
 
-Status FaultInjectionTestEnv::RenameFile(const std::string& s,
-                                         const std::string& t) {
+Status FaultInjectionTestEnv::RenameFile(const std::filesystem::path& s,
+                                         const std::filesystem::path& t) {
   Status ret = EnvWrapper::RenameFile(s, t);
 
   if (ret.ok()) {
@@ -338,7 +338,7 @@ void FaultInjectionTestEnv::ResetState() {
 Status FaultInjectionTestEnv::RemoveFilesCreatedAfterLastDirSync() {
   // Because RemoveFile access this container make a copy to avoid deadlock
   mutex_.Lock();
-  std::set<std::string> new_files(new_files_since_last_dir_sync_.begin(),
+  std::set<std::filesystem::path> new_files(new_files_since_last_dir_sync_.begin(),
                                   new_files_since_last_dir_sync_.end());
   mutex_.Unlock();
   Status status;

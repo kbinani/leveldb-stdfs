@@ -46,7 +46,7 @@ std::string EscapeString(const Slice& value) {
   return r;
 }
 
-bool ConsumeDecimalNumber(Slice* in, uint64_t* val) {
+bool ConsumeDecimalNumber(std::string* in, uint64_t* val) {
   // Constants that will be optimized away.
   constexpr const uint64_t kMaxUint64 = std::numeric_limits<uint64_t>::max();
   constexpr const char kLastDigitOfMaxUint64 =
@@ -75,8 +75,41 @@ bool ConsumeDecimalNumber(Slice* in, uint64_t* val) {
 
   *val = value;
   const size_t digits_consumed = current - start;
-  in->remove_prefix(digits_consumed);
+  *in = in->substr(digits_consumed);
   return digits_consumed != 0;
+}
+
+bool ConsumeDecimalNumber(std::wstring* in, uint64_t* val) {
+    // Constants that will be optimized away.
+    constexpr const uint64_t kMaxUint64 = std::numeric_limits<uint64_t>::max();
+    constexpr const wchar_t kLastDigitOfMaxUint64 =
+        L'0' + static_cast<char>(kMaxUint64 % 10);
+
+    uint64_t value = 0;
+
+    // reinterpret_cast-ing from char* to uint8_t* to avoid signedness.
+    const wchar_t* start = reinterpret_cast<const wchar_t*>(in->data());
+
+    const wchar_t* end = start + in->size();
+    const wchar_t* current = start;
+    for (; current != end; ++current) {
+        const wchar_t ch = *current;
+        if (ch < L'0' || ch > L'9') break;
+
+        // Overflow check.
+        // kMaxUint64 / 10 is also constant and will be optimized away.
+        if (value > kMaxUint64 / 10 ||
+            (value == kMaxUint64 / 10 && ch > kLastDigitOfMaxUint64)) {
+            return false;
+        }
+
+        value = (value * 10) + (ch - L'0');
+    }
+
+    *val = value;
+    const size_t digits_consumed = current - start;
+    *in = in->substr(digits_consumed);
+    return digits_consumed != 0;
 }
 
 }  // namespace leveldb

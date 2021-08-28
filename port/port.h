@@ -16,4 +16,10 @@
 #include "port/port_chromium.h"
 #endif
 
+#if defined(_WIN32)
+#define _T(v) (L ## v)
+#else
+#define _T(v) (v)
+#endif
+
 #endif  // STORAGE_LEVELDB_PORT_PORT_H_

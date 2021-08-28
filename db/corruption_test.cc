@@ -87,7 +87,8 @@ class CorruptionTest : public testing::Test {
         // Ignore boundary keys.
         continue;
       }
-      if (!ConsumeDecimalNumber(&in, &key) || !in.empty() ||
+      std::string s = in.ToString();
+      if (!ConsumeDecimalNumber(&s, &key) || !s.empty() ||
           key < next_expected) {
         bad_keys++;
         continue;
@@ -112,16 +113,16 @@ class CorruptionTest : public testing::Test {
 
   void Corrupt(FileType filetype, int offset, int bytes_to_corrupt) {
     // Pick file to corrupt
-    std::vector<std::string> filenames;
+    std::vector<std::filesystem::path> filenames;
     ASSERT_LEVELDB_OK(env_.target()->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
-    std::string fname;
+    std::filesystem::path fname;
     int picked_number = -1;
     for (size_t i = 0; i < filenames.size(); i++) {
       if (ParseFileName(filenames[i], &number, &type) && type == filetype &&
           int(number) > picked_number) {  // Pick latest file
-        fname = dbname_ + "/" + filenames[i];
+        fname = dbname_ / filenames[i];
         picked_number = number;
       }
     }

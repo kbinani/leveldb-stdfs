@@ -26,7 +26,7 @@ class MemEnvTest : public testing::Test {
 TEST_F(MemEnvTest, Basics) {
   uint64_t file_size;
   WritableFile* writable_file;
-  std::vector<std::string> children;
+  std::vector<std::filesystem::path> children;
 
   ASSERT_LEVELDB_OK(env_->CreateDir("/dir"));
 
@@ -48,7 +48,7 @@ TEST_F(MemEnvTest, Basics) {
   ASSERT_EQ(0, file_size);
   ASSERT_LEVELDB_OK(env_->GetChildren("/dir", &children));
   ASSERT_EQ(1, children.size());
-  ASSERT_EQ("f", children[0]);
+  ASSERT_EQ(std::filesystem::path("f"), children[0]);
 
   // Write to the file.
   ASSERT_LEVELDB_OK(env_->NewWritableFile("/dir/f", &writable_file));
@@ -143,7 +143,7 @@ TEST_F(MemEnvTest, Locks) {
 }
 
 TEST_F(MemEnvTest, Misc) {
-  std::string test_dir;
+  std::filesystem::path test_dir;
   ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
   ASSERT_TRUE(!test_dir.empty());
 

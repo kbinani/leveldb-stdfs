@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "leveldb/export.h"
 #include "leveldb/status.h"
@@ -71,7 +72,7 @@ class LEVELDB_EXPORT Env {
   // NotFound status when the file does not exist.
   //
   // The returned file will only be accessed by one thread at a time.
-  virtual Status NewSequentialFile(const std::string& fname,
+  virtual Status NewSequentialFile(const std::filesystem::path& fname,
                                    SequentialFile** result) = 0;
 
   // Create an object supporting random-access reads from the file with the
@@ -82,7 +83,7 @@ class LEVELDB_EXPORT Env {
   // not exist.
   //
   // The returned file may be concurrently accessed by multiple threads.
-  virtual Status NewRandomAccessFile(const std::string& fname,
+  virtual Status NewRandomAccessFile(const std::filesystem::path& fname,
                                      RandomAccessFile** result) = 0;
 
   // Create an object that writes to a new file with the specified
@@ -92,7 +93,7 @@ class LEVELDB_EXPORT Env {
   // returns non-OK.
   //
   // The returned file will only be accessed by one thread at a time.
-  virtual Status NewWritableFile(const std::string& fname,
+  virtual Status NewWritableFile(const std::filesystem::path& fname,
                                  WritableFile** result) = 0;
 
   // Create an object that either appends to an existing file, or
@@ -107,17 +108,17 @@ class LEVELDB_EXPORT Env {
   // not allow appending to an existing file.  Users of Env (including
   // the leveldb implementation) must be prepared to deal with
   // an Env that does not support appending.
-  virtual Status NewAppendableFile(const std::string& fname,
+  virtual Status NewAppendableFile(const std::filesystem::path& fname,
                                    WritableFile** result);
 
   // Returns true iff the named file exists.
-  virtual bool FileExists(const std::string& fname) = 0;
+  virtual bool FileExists(const std::filesystem::path& fname) = 0;
 
   // Store in *result the names of the children of the specified directory.
   // The names are relative to "dir".
   // Original contents of *results are dropped.
-  virtual Status GetChildren(const std::string& dir,
-                             std::vector<std::string>* result) = 0;
+  virtual Status GetChildren(const std::filesystem::path& dir,
+                             std::vector<std::filesystem::path>* result) = 0;
   // Delete the named file.
   //
   // The default implementation calls DeleteFile, to support legacy Env
@@ -127,7 +128,7 @@ class LEVELDB_EXPORT Env {
   //
   // A future release will remove DeleteDir and the default implementation of
   // RemoveDir.
-  virtual Status RemoveFile(const std::string& fname);
+  virtual Status RemoveFile(const std::filesystem::path& fname);
 
   // DEPRECATED: Modern Env implementations should override RemoveFile instead.
   //
@@ -136,10 +137,10 @@ class LEVELDB_EXPORT Env {
   // code should call RemoveFile.
   //
   // A future release will remove this method.
-  virtual Status DeleteFile(const std::string& fname);
+  virtual Status DeleteFile(const std::filesystem::path& fname);
 
   // Create the specified directory.
-  virtual Status CreateDir(const std::string& dirname) = 0;
+  virtual Status CreateDir(const std::filesystem::path& dirname) = 0;
 
   // Delete the specified directory.
   //
@@ -150,7 +151,7 @@ class LEVELDB_EXPORT Env {
   //
   // A future release will remove DeleteDir and the default implementation of
   // RemoveDir.
-  virtual Status RemoveDir(const std::string& dirname);
+  virtual Status RemoveDir(const std::filesystem::path& dirname);
 
   // DEPRECATED: Modern Env implementations should override RemoveDir instead.
   //
@@ -159,14 +160,14 @@ class LEVELDB_EXPORT Env {
   // code should call RemoveDir.
   //
   // A future release will remove this method.
-  virtual Status DeleteDir(const std::string& dirname);
+  virtual Status DeleteDir(const std::filesystem::path& dirname);
 
   // Store the size of fname in *file_size.
-  virtual Status GetFileSize(const std::string& fname, uint64_t* file_size) = 0;
+  virtual Status GetFileSize(const std::filesystem::path& fname, uint64_t* file_size) = 0;
 
   // Rename file src to target.
-  virtual Status RenameFile(const std::string& src,
-                            const std::string& target) = 0;
+  virtual Status RenameFile(const std::filesystem::path& src,
+                            const std::filesystem::path& target) = 0;
 
   // Lock the specified file.  Used to prevent concurrent access to
   // the same db by multiple processes.  On failure, stores nullptr in
@@ -182,7 +183,7 @@ class LEVELDB_EXPORT Env {
   // to go away.
   //
   // May create the named file if it does not already exist.
-  virtual Status LockFile(const std::string& fname, FileLock** lock) = 0;
+  virtual Status LockFile(const std::filesystem::path& fname, FileLock** lock) = 0;
 
   // Release the lock acquired by a previous successful call to LockFile.
   // REQUIRES: lock was returned by a successful LockFile() call
@@ -205,10 +206,10 @@ class LEVELDB_EXPORT Env {
   // or may not have just been created. The directory may or may not differ
   // between runs of the same process, but subsequent calls will return the
   // same directory.
-  virtual Status GetTestDirectory(std::string* path) = 0;
+  virtual Status GetTestDirectory(std::filesystem::path* path) = 0;
 
   // Create and return a log file for storing informational messages.
-  virtual Status NewLogger(const std::string& fname, Logger** result) = 0;
+  virtual Status NewLogger(const std::filesystem::path& fname, Logger** result) = 0;
 
   // Returns the number of micro-seconds since some fixed point in time. Only
   // useful for computing deltas of time.
@@ -323,10 +324,10 @@ void Log(Logger* info_log, const char* format, ...)
 
 // A utility routine: write "data" to the named file.
 LEVELDB_EXPORT Status WriteStringToFile(Env* env, const Slice& data,
-                                        const std::string& fname);
+                                        const std::filesystem::path& fname);
 
 // A utility routine: read contents of named file into *data
-LEVELDB_EXPORT Status ReadFileToString(Env* env, const std::string& fname,
+LEVELDB_EXPORT Status ReadFileToString(Env* env, const std::filesystem::path& fname,
                                        std::string* data);
 
 // An implementation of Env that forwards all calls to another Env.
@@ -342,42 +343,42 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   Env* target() const { return target_; }
 
   // The following text is boilerplate that forwards all methods to target().
-  Status NewSequentialFile(const std::string& f, SequentialFile** r) override {
+  Status NewSequentialFile(const std::filesystem::path& f, SequentialFile** r) override {
     return target_->NewSequentialFile(f, r);
   }
-  Status NewRandomAccessFile(const std::string& f,
+  Status NewRandomAccessFile(const std::filesystem::path& f,
                              RandomAccessFile** r) override {
     return target_->NewRandomAccessFile(f, r);
   }
-  Status NewWritableFile(const std::string& f, WritableFile** r) override {
+  Status NewWritableFile(const std::filesystem::path& f, WritableFile** r) override {
     return target_->NewWritableFile(f, r);
   }
-  Status NewAppendableFile(const std::string& f, WritableFile** r) override {
+  Status NewAppendableFile(const std::filesystem::path& f, WritableFile** r) override {
     return target_->NewAppendableFile(f, r);
   }
-  bool FileExists(const std::string& f) override {
+  bool FileExists(const std::filesystem::path& f) override {
     return target_->FileExists(f);
   }
-  Status GetChildren(const std::string& dir,
-                     std::vector<std::string>* r) override {
+  Status GetChildren(const std::filesystem::path& dir,
+                     std::vector<std::filesystem::path>* r) override {
     return target_->GetChildren(dir, r);
   }
-  Status RemoveFile(const std::string& f) override {
+  Status RemoveFile(const std::filesystem::path& f) override {
     return target_->RemoveFile(f);
   }
-  Status CreateDir(const std::string& d) override {
+  Status CreateDir(const std::filesystem::path& d) override {
     return target_->CreateDir(d);
   }
-  Status RemoveDir(const std::string& d) override {
+  Status RemoveDir(const std::filesystem::path& d) override {
     return target_->RemoveDir(d);
   }
-  Status GetFileSize(const std::string& f, uint64_t* s) override {
+  Status GetFileSize(const std::filesystem::path& f, uint64_t* s) override {
     return target_->GetFileSize(f, s);
   }
-  Status RenameFile(const std::string& s, const std::string& t) override {
+  Status RenameFile(const std::filesystem::path& s, const std::filesystem::path& t) override {
     return target_->RenameFile(s, t);
   }
-  Status LockFile(const std::string& f, FileLock** l) override {
+  Status LockFile(const std::filesystem::path& f, FileLock** l) override {
     return target_->LockFile(f, l);
   }
   Status UnlockFile(FileLock* l) override { return target_->UnlockFile(l); }
@@ -387,10 +388,10 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   void StartThread(void (*f)(void*), void* a) override {
     return target_->StartThread(f, a);
   }
-  Status GetTestDirectory(std::string* path) override {
+  Status GetTestDirectory(std::filesystem::path* path) override {
     return target_->GetTestDirectory(path);
   }
-  Status NewLogger(const std::string& fname, Logger** result) override {
+  Status NewLogger(const std::filesystem::path& fname, Logger** result) override {
     return target_->NewLogger(fname, result);
   }
   uint64_t NowMicros() override { return target_->NowMicros(); }

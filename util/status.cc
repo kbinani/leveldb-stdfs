@@ -8,6 +8,13 @@
 
 #include "port/port.h"
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif  // ifndef NOMINMAX
+#include <windows.h>
+#endif
+
 namespace leveldb {
 
 const char* Status::CopyState(const char* state) {
@@ -73,5 +80,27 @@ std::string Status::ToString() const {
     return result;
   }
 }
+
+std::string Status::Narrow(const std::wstring& wstr) {
+#if defined(_WIN32)
+    if (wstr.empty()) return std::string();
+    int size_needed = WideCharToMultiByte(
+        CP_ACP, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+    std::string strTo(size_needed, 0);
+    WideCharToMultiByte(CP_ACP, 0, &wstr[0], (int)wstr.size(), &strTo[0],
+        size_needed, NULL, NULL);
+    return strTo;
+#else
+    size_t len = s.size();
+    std::vector<char> buf(len + 1, 0);
+    size_t converted = wcstombs(buf.data(), s.c_str(), buf.size());
+    std::string ret;
+    if (converted != static_cast<std::size_t>(-1)) {
+        ret.assign(buf.data(), converted);
+    }
+    return ret;
+#endif
+}
+
 
 }  // namespace leveldb

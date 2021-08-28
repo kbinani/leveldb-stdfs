@@ -28,7 +28,7 @@ class VersionSet;
 
 class DBImpl : public DB {
  public:
-  DBImpl(const Options& options, const std::string& dbname);
+  DBImpl(const Options& options, const std::filesystem::path& dbname);
 
   DBImpl(const DBImpl&) = delete;
   DBImpl& operator=(const DBImpl&) = delete;
@@ -162,7 +162,7 @@ class DBImpl : public DB {
   const Options options_;  // options_.comparator == &internal_comparator_
   const bool owns_info_log_;
   const bool owns_cache_;
-  const std::string dbname_;
+  const std::filesystem::path dbname_;
 
   // table_cache_ provides its own synchronization
   TableCache* const table_cache_;
@@ -207,7 +207,7 @@ class DBImpl : public DB {
 
 // Sanitize db options.  The caller should delete result.info_log if
 // it is not equal to src.info_log.
-Options SanitizeOptions(const std::string& db,
+Options SanitizeOptions(const std::filesystem::path& db,
                         const InternalKeyComparator* icmp,
                         const InternalFilterPolicy* ipolicy,
                         const Options& src);

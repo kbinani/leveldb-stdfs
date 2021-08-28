@@ -73,52 +73,53 @@ TEST(FileNameTest, Parse) {
 TEST(FileNameTest, Construction) {
   uint64_t number;
   FileType type;
-  std::string fname;
+  using string_type = std::filesystem::path::string_type;
+  string_type fname;
 
-  fname = CurrentFileName("foo");
-  ASSERT_EQ("foo/", std::string(fname.data(), 4));
+  fname = CurrentFileName(_T("foo"));
+  ASSERT_EQ(_T("foo/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(0, number);
   ASSERT_EQ(kCurrentFile, type);
 
-  fname = LockFileName("foo");
-  ASSERT_EQ("foo/", std::string(fname.data(), 4));
+  fname = LockFileName(_T("foo"));
+  ASSERT_EQ(_T("foo/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(0, number);
   ASSERT_EQ(kDBLockFile, type);
 
-  fname = LogFileName("foo", 192);
-  ASSERT_EQ("foo/", std::string(fname.data(), 4));
+  fname = LogFileName(_T("foo"), 192);
+  ASSERT_EQ(_T("foo/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(192, number);
   ASSERT_EQ(kLogFile, type);
 
-  fname = TableFileName("bar", 200);
-  ASSERT_EQ("bar/", std::string(fname.data(), 4));
+  fname = TableFileName(_T("bar"), 200);
+  ASSERT_EQ(_T("bar/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(200, number);
   ASSERT_EQ(kTableFile, type);
 
-  fname = DescriptorFileName("bar", 100);
-  ASSERT_EQ("bar/", std::string(fname.data(), 4));
+  fname = DescriptorFileName(_T("bar"), 100);
+  ASSERT_EQ(_T("bar/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(100, number);
   ASSERT_EQ(kDescriptorFile, type);
 
-  fname = TempFileName("tmp", 999);
-  ASSERT_EQ("tmp/", std::string(fname.data(), 4));
+  fname = TempFileName(_T("tmp"), 999);
+  ASSERT_EQ(_T("tmp/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(999, number);
   ASSERT_EQ(kTempFile, type);
 
-  fname = InfoLogFileName("foo");
-  ASSERT_EQ("foo/", std::string(fname.data(), 4));
+  fname = InfoLogFileName(_T("foo"));
+  ASSERT_EQ(_T("foo/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(0, number);
   ASSERT_EQ(kInfoLogFile, type);
 
-  fname = OldInfoLogFileName("foo");
-  ASSERT_EQ("foo/", std::string(fname.data(), 4));
+  fname = OldInfoLogFileName(_T("foo"));
+  ASSERT_EQ(_T("foo/"), string_type(fname.data(), 4));
   ASSERT_TRUE(ParseFileName(fname.c_str() + 4, &number, &type));
   ASSERT_EQ(0, number);
   ASSERT_EQ(kInfoLogFile, type);

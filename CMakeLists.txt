@@ -16,8 +16,8 @@ endif(NOT CMAKE_C_STANDARD)
 
 # C++ standard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_CXX_STANDARD)
-  # This project requires C++11.
-  set(CMAKE_CXX_STANDARD 11)
+  # This project requires C++17.
+  set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif(NOT CMAKE_CXX_STANDARD)
@@ -122,7 +122,6 @@ target_sources(leveldb
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
     "db/builder.cc"
     "db/builder.h"
-    "db/c.cc"
     "db/db_impl.cc"
     "db/db_impl.h"
     "db/db_iter.cc"
@@ -192,7 +191,6 @@ target_sources(leveldb
 
   # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".
   $<$<VERSION_GREATER:CMAKE_VERSION,3.2>:PUBLIC>
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/c.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/cache.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/comparator.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/db.h"
@@ -338,7 +336,6 @@ if(LEVELDB_BUILD_TESTS)
     add_test(NAME "${test_target_name}" COMMAND "${test_target_name}")
   endfunction(leveldb_test)
 
-  leveldb_test("db/c_test.c")
   leveldb_test("db/fault_injection_test.cc")
 
   leveldb_test("issues/issue178_test.cc")
@@ -453,7 +450,6 @@ if(LEVELDB_INSTALL)
   )
   install(
     FILES
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/c.h"
       "${LEVELDB_PUBLIC_INCLUDE_DIR}/cache.h"
       "${LEVELDB_PUBLIC_INCLUDE_DIR}/comparator.h"
       "${LEVELDB_PUBLIC_INCLUDE_DIR}/db.h"
