@@ -1,7 +1,19 @@
-**LevelDB is a fast key-value storage library written at Google that provides an ordered mapping from string keys to string values.**
+# About this fork
 
-[![Build Status](https://travis-ci.org/google/leveldb.svg?branch=master)](https://travis-ci.org/google/leveldb)
-[![Build status](https://ci.appveyor.com/api/projects/status/g2j5j4rfkda6eyw5/branch/master?svg=true)](https://ci.appveyor.com/project/pwnall/leveldb)
+[![CI](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml/badge.svg)](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml)
+
+- This repository is a fork of [pmmp/leveldb](https://github.com/pmmp/leveldb)
+- The `stdfs` branch (default branch) is from `master` branch of [google/leveldb](https://github.com/google/leveldb), with std::filesystem support.
+- The `stdfs-mcpe` branch is from `mojang-compatible` branch of [pmmp/leveldb](https://github.com/pmmp/leveldb), with std::fiesystem support.
+- What is the "std::filesystem support"?
+  ```c++
+  leveldb::DB::Open(const leveldb::Options&, const std::filesystem::path&, leveldb::DB**);
+  ```
+
+---
+---
+
+**LevelDB is a fast key-value storage library written at Google that provides an ordered mapping from string keys to string values.**
 
 Authors: Sanjay Ghemawat (sanjay@google.com) and Jeff Dean (jeff@google.com)
 
