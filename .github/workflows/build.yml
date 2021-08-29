@@ -12,19 +12,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Check style
-        uses: DoozyX/clang-format-lint-action@v0.12
-        with:
-          clangFormatVersion: 12
-          exclude: ./ext
-
       - name: Build
         run: |
-          mkdir -p ./build
-          cd ./build
+          mkdir -p build
+          cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel --config Release --verbose
-          ctest --verbose --build-config=Release
+          cmake --build . --parallel --config Release
+          ctest --verbose --build-config Release
 
   Windows:
     runs-on: windows-latest
@@ -40,5 +34,5 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel --config Release --verbose
-          ctest --build-config=Release --verbose
+          cmake --build . --parallel --config Release
+          ctest --verbose --build-config Release
