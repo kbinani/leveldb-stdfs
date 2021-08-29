@@ -27,7 +27,7 @@ jobs:
           submodules: recursive
       - name: Build
         run: |
-          mkdir -p build
+          mkdir build
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
           cmake --build . --parallel --config Release
