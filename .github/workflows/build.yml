@@ -1,60 +1,26 @@
 name: CI
-
 on: push
-
 jobs:
-  Linux:
+  style:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           submodules: recursive
-
       - name: Check style
         uses: DoozyX/clang-format-lint-action@v0.12
         with:
           clangFormatVersion: 12
-          exclude: third_party
-
+          exclude: ./third_party
+          extensions: 'cc,h,h.in'
+  test:
+    needs: style
+    runs-on: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
       - name: Build
         run: |
           mkdir -p build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel --config Release
-          ctest --verbose --build-config Release
-
-  macOS:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Build
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel --config Release
-          ctest --verbose --build-config Release
-
-  Windows:
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Build
-        run: |
-          mkdir build
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
           cmake --build . --parallel --config Release
