@@ -16,7 +16,10 @@ jobs:
           extensions: 'cc,h,h.in'
   test:
     needs: style
-    runs-on: [ubuntu-latest, macos-latest, windows-latest]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Build
         run: |
