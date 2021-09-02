@@ -41,8 +41,8 @@ class LEVELDB_EXPORT Status {
   static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kNotFound, msg, msg2);
   }
-  static Status NotFound(const std::wstring& msg, const std::string& msg2) {
-    return Status(kNotFound, Narrow(msg), msg2);
+  static Status NotFound(const std::wstring& msg, const std::wstring& msg2) {
+    return Status(kNotFound, Narrow(msg), Narrow(msg2));
   }
   static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kCorruption, msg, msg2);
@@ -65,6 +65,9 @@ class LEVELDB_EXPORT Status {
   }
   static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kIOError, msg, msg2);
+  }
+  static Status IOError(const std::wstring& msg, const std::wstring& msg2) {
+    return Status(kIOError, Narrow(msg), Narrow(msg2));
   }
   static Status IOError(const std::wstring& msg, const std::string& msg2) {
     return Status(kIOError, Narrow(msg), msg2);
