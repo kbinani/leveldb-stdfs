@@ -45,15 +45,15 @@ constexpr int kDefaultMmapLimit = (sizeof(void*) >= 8) ? 1000 : 0;
 // Can be set by by EnvWindowsTestHelper::SetReadOnlyMMapLimit().
 int g_mmap_limit = kDefaultMmapLimit;
 
-std::string GetWindowsErrorMessage(DWORD error_code) {
-  std::string message;
-  char* error_text = nullptr;
+std::wstring GetWindowsErrorMessage(DWORD error_code) {
+  std::wstring message;
+  wchar_t* error_text = nullptr;
   // Use MBCS version of FormatMessage to match return value.
-  size_t error_text_size = ::FormatMessageA(
+  size_t error_text_size = ::FormatMessageW(
       FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER |
           FORMAT_MESSAGE_IGNORE_INSERTS,
       nullptr, error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      reinterpret_cast<char*>(&error_text), 0, nullptr);
+      reinterpret_cast<wchar_t*>(&error_text), 0, nullptr);
   if (!error_text) {
     return message;
   }
