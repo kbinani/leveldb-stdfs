@@ -1,14 +1,18 @@
 # About this fork
 
-[![CI](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml/badge.svg)](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml)
-
 - This repository is a fork of [pmmp/leveldb](https://github.com/pmmp/leveldb)
 - The `stdfs` branch (default branch) is from `master` branch of [google/leveldb](https://github.com/google/leveldb), with std::filesystem support.
 - The `stdfs-mcpe` branch is from `mojang-compatible` branch of [pmmp/leveldb](https://github.com/pmmp/leveldb), with std::fiesystem support.
 - What is the "std::filesystem support"?
   ```c++
-  leveldb::DB::Open(const leveldb::Options&, const std::filesystem::path&, leveldb::DB**);
+  leveldb::DB::Open(const leveldb::Options&,
+                    const std::filesystem::path&,
+                    leveldb::DB**);
   ```
+# Build status
+`stdfs`|`stdfs-mcpe`
+-------|------------
+[![CI](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml/badge.svg?branch=stdfs)](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml)|[![CI](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml/badge.svg?branch=stdfs-mcpe)](https://github.com/kbinani/leveldb-stdfs/actions/workflows/build.yml)
 
 ---
 ---
