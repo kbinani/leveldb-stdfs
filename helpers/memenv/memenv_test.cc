@@ -205,8 +205,8 @@ TEST_F(MemEnvTest, LargeWrite) {
 TEST_F(MemEnvTest, OverwriteOpenFile) {
   const char kWrite1Data[] = "Write #1 data";
   const size_t kFileDataLen = sizeof(kWrite1Data) - 1;
-  const std::filesystem::path kTestFileName =
-      testing::TempDir() + "leveldb-TestFile.dat";
+  const auto kTestFileName =
+      std::filesystem::path(testing::TempDir()) / "leveldb-TestFile.dat";
 
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, kWrite1Data, kTestFileName));
 

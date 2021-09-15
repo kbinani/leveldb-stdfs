@@ -243,7 +243,7 @@ class DBTest : public testing::Test {
 
   DBTest() : env_(new SpecialEnv(Env::Default())), option_config_(kDefault) {
     filter_policy_ = NewBloomFilterPolicy(10);
-    dbname_ = testing::TempDir() + "db_test";
+    dbname_ = std::filesystem::path(testing::TempDir()) / "db_test";
     DestroyDB(dbname_, Options());
     db_ = nullptr;
     Reopen();
@@ -1647,7 +1647,7 @@ TEST_F(DBTest, ManualCompaction) {
 }
 
 TEST_F(DBTest, DBOpen_Options) {
-  std::filesystem::path dbname = testing::TempDir() + "db_options_test";
+  auto dbname = std::filesystem::path(testing::TempDir()) / "db_options_test";
   DestroyDB(dbname, Options());
 
   // Does not exist, and create_if_missing == false: error
@@ -1686,7 +1686,7 @@ TEST_F(DBTest, DBOpen_Options) {
 }
 
 TEST_F(DBTest, DestroyEmptyDir) {
-  std::string dbname = testing::TempDir() + "db_empty_dir";
+  auto dbname = std::filesystem::path(testing::TempDir()) / "db_empty_dir";
   TestEnv env(Env::Default());
   env.RemoveDir(dbname);
   ASSERT_TRUE(!env.FileExists(dbname));
@@ -1714,7 +1714,7 @@ TEST_F(DBTest, DestroyEmptyDir) {
 }
 
 TEST_F(DBTest, DestroyOpenDB) {
-  std::filesystem::path dbname = testing::TempDir() + "open_db_dir";
+  auto dbname = std::filesystem::path(testing::TempDir()) / "open_db_dir";
   env_->RemoveDir(dbname);
   ASSERT_TRUE(!env_->FileExists(dbname));
 
@@ -2309,7 +2309,8 @@ std::string MakeKey(unsigned int num) {
 static void BM_LogAndApply(benchmark::State& state) {
   const int num_base_files = state.range(0);
 
-  std::filesystem::path dbname = testing::TempDir() + "leveldb_test_benchmark";
+  auto dbname =
+      std::filesystem::path(testing::TempDir()) / "leveldb_test_benchmark";
   DestroyDB(dbname, Options());
 
   DB* db = nullptr;

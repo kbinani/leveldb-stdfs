@@ -354,7 +354,7 @@ class DBConstructor : public Constructor {
 
  private:
   void NewDB() {
-    std::filesystem::path name = testing::TempDir() + "table_testdb";
+    auto name = std::filesystem::path(testing::TempDir()) / "table_testdb";
 
     Options options;
     options.comparator = comparator_;

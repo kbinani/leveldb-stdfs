@@ -16,7 +16,7 @@ namespace leveldb {
 class AutoCompactTest : public testing::Test {
  public:
   AutoCompactTest() {
-    dbname_ = testing::TempDir() + "autocompact_test";
+    dbname_ = std::filesystem::path(testing::TempDir()) / "autocompact_test";
     tiny_cache_ = NewLRUCache(100);
     options_.block_cache = tiny_cache_;
     DestroyDB(dbname_, options_);
