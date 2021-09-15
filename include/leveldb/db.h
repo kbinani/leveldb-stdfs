@@ -164,6 +164,10 @@ class LEVELDB_EXPORT DB {
 // database files, Status::OK() will still be returned masking this failure.
 LEVELDB_EXPORT Status DestroyDB(const std::filesystem::path& name,
                                 const Options& options);
+LEVELDB_EXPORT Status DestroyDB(const std::string& name,
+                                const Options& options) = delete;
+LEVELDB_EXPORT Status DestroyDB(const std::wstring& name,
+                                const Options& options) = delete;
 
 // If a DB cannot be opened, you may attempt to call this method to
 // resurrect as much of the contents of the database as possible.
@@ -171,6 +175,10 @@ LEVELDB_EXPORT Status DestroyDB(const std::filesystem::path& name,
 // on a database that contains important information.
 LEVELDB_EXPORT Status RepairDB(const std::filesystem::path& dbname,
                                const Options& options);
+LEVELDB_EXPORT Status RepairDB(const std::string& dbname,
+                               const Options& options) = delete;
+LEVELDB_EXPORT Status RepairDB(const std::wstring& dbname,
+                               const Options& options) = delete;
 
 }  // namespace leveldb
 
