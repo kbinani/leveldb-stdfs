@@ -16,7 +16,8 @@ namespace leveldb {
 
 TEST(Issue200, Test) {
   // Get rid of any state from an old run.
-  std::filesystem::path dbpath = testing::TempDir() + "leveldb_issue200_test";
+  auto dbpath =
+      std::filesystem::path(testing::TempDir()) / "leveldb_issue200_test";
   DestroyDB(dbpath, Options());
 
   DB* db;

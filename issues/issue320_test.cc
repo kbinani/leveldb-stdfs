@@ -54,7 +54,8 @@ TEST(Issue320, Test) {
   Options options;
   options.create_if_missing = true;
 
-  std::filesystem::path dbpath = testing::TempDir() + "leveldb_issue320_test";
+  auto dbpath =
+      std::filesystem::path(testing::TempDir()) / "leveldb_issue320_test";
   ASSERT_LEVELDB_OK(DB::Open(options, dbpath, &db));
 
   uint32_t target_size = 10000;
