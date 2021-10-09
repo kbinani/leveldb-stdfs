@@ -639,7 +639,7 @@ class WindowsEnv : public Env {
 
   Status NewLogger(const std::string& filename, Logger** result) override {
     auto wFilename = toUtf16(filename);
-    std::FILE* fp = _wfopen(wFilename.c_str(), L"w");
+    std::FILE* fp = _wfopen(wFilename.c_str(), L"wN");
     if (fp == nullptr) {
       *result = nullptr;
       return WindowsError(filename, ::GetLastError());
