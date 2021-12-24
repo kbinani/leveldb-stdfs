@@ -629,7 +629,7 @@ class WindowsEnv : public Env {
 
   Status NewLogger(const std::filesystem::path& filename,
                    Logger** result) override {
-    std::FILE* fp = _wfopen(filename.c_str(), L"w");
+    std::FILE* fp = _wfopen(filename.c_str(), L"wN");
     if (fp == nullptr) {
       *result = nullptr;
       return WindowsError(filename, ::GetLastError());
