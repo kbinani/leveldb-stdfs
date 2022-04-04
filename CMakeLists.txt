@@ -320,6 +320,9 @@ endif(HAVE_ZSTD)
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
 
+# Fix linker error when archiving iOS app depends on leveldb
+set_target_properties(leveldb PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+
 add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
