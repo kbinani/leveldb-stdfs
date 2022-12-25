@@ -27,16 +27,16 @@ class WindowsLogger final : public Logger {
 
   ~WindowsLogger() override { std::fclose(fp_); }
 
-  void Logv(const char* format, std::va_list arguments) override {
+  void Logv(const wchar_t* format, std::va_list arguments) override {
     // Record the time as close to the Logv() call as possible.
     SYSTEMTIME now_components;
     ::GetLocalTime(&now_components);
 
     // Record the thread ID.
     constexpr const int kMaxThreadIdSize = 32;
-    std::ostringstream thread_stream;
+    std::wostringstream thread_stream;
     thread_stream << std::this_thread::get_id();
-    std::string thread_id = thread_stream.str();
+    std::wstring thread_id = thread_stream.str();
     if (thread_id.size() > kMaxThreadIdSize) {
       thread_id.resize(kMaxThreadIdSize);
     }
@@ -44,22 +44,21 @@ class WindowsLogger final : public Logger {
     // We first attempt to print into a stack-allocated buffer. If this attempt
     // fails, we make a second attempt with a dynamically allocated buffer.
     constexpr const int kStackBufferSize = 512;
-    char stack_buffer[kStackBufferSize];
-    static_assert(sizeof(stack_buffer) == static_cast<size_t>(kStackBufferSize),
-                  "sizeof(char) is expected to be 1 in C++");
+    wchar_t stack_buffer[kStackBufferSize];
 
     int dynamic_buffer_size = 0;  // Computed in the first iteration.
     for (int iteration = 0; iteration < 2; ++iteration) {
       const int buffer_size =
           (iteration == 0) ? kStackBufferSize : dynamic_buffer_size;
-      char* const buffer =
-          (iteration == 0) ? stack_buffer : new char[dynamic_buffer_size];
+      wchar_t* const buffer =
+          (iteration == 0) ? stack_buffer : new wchar_t[dynamic_buffer_size];
 
       // Print the header into the buffer.
-      int buffer_offset = std::snprintf(
-          buffer, buffer_size, "%04d/%02d/%02d-%02d:%02d:%02d.%06d %s ",
-          now_components.wYear, now_components.wMonth, now_components.wDay,
-          now_components.wHour, now_components.wMinute, now_components.wSecond,
+      int buffer_offset = _snwprintf_s(
+          buffer, buffer_size, _TRUNCATE,
+          L"%04d/%02d/%02d-%02d:%02d:%02d.%06d %s ", now_components.wYear,
+          now_components.wMonth, now_components.wDay, now_components.wHour,
+          now_components.wMinute, now_components.wSecond,
           static_cast<int>(now_components.wMilliseconds * 1000),
           thread_id.c_str());
 
@@ -75,8 +74,8 @@ class WindowsLogger final : public Logger {
       std::va_list arguments_copy;
       va_copy(arguments_copy, arguments);
       buffer_offset +=
-          std::vsnprintf(buffer + buffer_offset, buffer_size - buffer_offset,
-                         format, arguments_copy);
+          _vsnwprintf_s(buffer + buffer_offset, buffer_size - buffer_offset,
+                        _TRUNCATE, format, arguments_copy);
       va_end(arguments_copy);
 
       // The code below may append a newline at the end of the buffer, which
@@ -99,13 +98,13 @@ class WindowsLogger final : public Logger {
       }
 
       // Add a newline if necessary.
-      if (buffer[buffer_offset - 1] != '\n') {
-        buffer[buffer_offset] = '\n';
+      if (buffer[buffer_offset - 1] != L'\n') {
+        buffer[buffer_offset] = L'\n';
         ++buffer_offset;
       }
 
       assert(buffer_offset <= buffer_size);
-      std::fwrite(buffer, 1, buffer_offset, fp_);
+      std::fwrite(buffer, sizeof(wchar_t), buffer_offset, fp_);
       std::fflush(fp_);
 
       if (iteration != 0) {
