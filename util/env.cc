@@ -47,7 +47,7 @@ Logger::~Logger() = default;
 
 FileLock::~FileLock() = default;
 
-void Log(Logger* info_log, const char* format, ...) {
+void Log(Logger* info_log, const wchar_t* format, ...) {
   if (info_log != nullptr) {
     std::va_list ap;
     va_start(ap, format);

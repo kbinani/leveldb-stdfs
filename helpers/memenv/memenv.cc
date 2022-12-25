@@ -216,7 +216,7 @@ class WritableFileImpl : public WritableFile {
 
 class NoOpLogger : public Logger {
  public:
-  void Logv(const char* format, std::va_list ap) override {}
+  void Logv(const wchar_t* format, std::va_list ap) override {}
 };
 
 class InMemoryEnv : public EnvWrapper {

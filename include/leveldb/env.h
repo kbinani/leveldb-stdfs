@@ -431,7 +431,7 @@ class LEVELDB_EXPORT Logger {
   virtual ~Logger();
 
   // Write an entry to the log file with the specified format.
-  virtual void Logv(const char* format, std::va_list ap) = 0;
+  virtual void Logv(const wchar_t* format, std::va_list ap) = 0;
 };
 
 // Identifies a locked file.
@@ -446,11 +446,7 @@ class LEVELDB_EXPORT FileLock {
 };
 
 // Log the specified data to *info_log if info_log is non-null.
-void Log(Logger* info_log, const char* format, ...)
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((__format__(__printf__, 2, 3)))
-#endif
-    ;
+void Log(Logger* info_log, const wchar_t* format, ...);
 
 // A utility routine: write "data" to the named file.
 LEVELDB_EXPORT Status WriteStringToFile(Env* env, const Slice& data,

@@ -8,6 +8,7 @@
 #ifndef STORAGE_LEVELDB_UTIL_POSIX_LOGGER_H_
 #define STORAGE_LEVELDB_UTIL_POSIX_LOGGER_H_
 
+#include <wchar.h>
 #include <cassert>
 #include <cstdarg>
 #include <cstdio>
@@ -29,7 +30,7 @@ class PosixLogger final : public Logger {
 
   ~PosixLogger() override { std::fclose(fp_); }
 
-  void Logv(const char* format, std::va_list arguments) override {
+  void Logv(const wchar_t* format, std::va_list arguments) override {
     // Record the time as close to the Logv() call as possible.
     struct ::timeval now_timeval;
     ::gettimeofday(&now_timeval, nullptr);
@@ -39,9 +40,9 @@ class PosixLogger final : public Logger {
 
     // Record the thread ID.
     constexpr const int kMaxThreadIdSize = 32;
-    std::ostringstream thread_stream;
+    std::wostringstream thread_stream;
     thread_stream << std::this_thread::get_id();
-    std::string thread_id = thread_stream.str();
+    std::wstring thread_id = thread_stream.str();
     if (thread_id.size() > kMaxThreadIdSize) {
       thread_id.resize(kMaxThreadIdSize);
     }
@@ -49,20 +50,18 @@ class PosixLogger final : public Logger {
     // We first attempt to print into a stack-allocated buffer. If this attempt
     // fails, we make a second attempt with a dynamically allocated buffer.
     constexpr const int kStackBufferSize = 512;
-    char stack_buffer[kStackBufferSize];
-    static_assert(sizeof(stack_buffer) == static_cast<size_t>(kStackBufferSize),
-                  "sizeof(char) is expected to be 1 in C++");
+    wchar_t stack_buffer[kStackBufferSize];
 
     int dynamic_buffer_size = 0;  // Computed in the first iteration.
     for (int iteration = 0; iteration < 2; ++iteration) {
       const int buffer_size =
           (iteration == 0) ? kStackBufferSize : dynamic_buffer_size;
-      char* const buffer =
-          (iteration == 0) ? stack_buffer : new char[dynamic_buffer_size];
+      wchar_t* const buffer =
+          (iteration == 0) ? stack_buffer : new wchar_t[dynamic_buffer_size];
 
       // Print the header into the buffer.
-      int buffer_offset = std::snprintf(
-          buffer, buffer_size, "%04d/%02d/%02d-%02d:%02d:%02d.%06d %s ",
+      int buffer_offset = swprintf(
+          buffer, buffer_size, L"%04d/%02d/%02d-%02d:%02d:%02d.%06d %ls ",
           now_components.tm_year + 1900, now_components.tm_mon + 1,
           now_components.tm_mday, now_components.tm_hour, now_components.tm_min,
           now_components.tm_sec, static_cast<int>(now_timeval.tv_usec),
@@ -80,7 +79,7 @@ class PosixLogger final : public Logger {
       std::va_list arguments_copy;
       va_copy(arguments_copy, arguments);
       buffer_offset +=
-          std::vsnprintf(buffer + buffer_offset, buffer_size - buffer_offset,
+          vswprintf(buffer + buffer_offset, buffer_size - buffer_offset,
                          format, arguments_copy);
       va_end(arguments_copy);
 
@@ -104,13 +103,13 @@ class PosixLogger final : public Logger {
       }
 
       // Add a newline if necessary.
-      if (buffer[buffer_offset - 1] != '\n') {
-        buffer[buffer_offset] = '\n';
+      if (buffer[buffer_offset - 1] != L'\n') {
+        buffer[buffer_offset] = L'\n';
         ++buffer_offset;
       }
 
       assert(buffer_offset <= buffer_size);
-      std::fwrite(buffer, 1, buffer_offset, fp_);
+      std::fwrite(buffer, sizeof(wchar_t), buffer_offset, fp_);
       std::fflush(fp_);
 
       if (iteration != 0) {

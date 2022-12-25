@@ -81,11 +81,12 @@ class Repairer {
         bytes += tables_[i].meta.file_size;
       }
       Log(options_.info_log,
-          "**** Repaired leveldb %s; "
-          "recovered %d files; %llu bytes. "
-          "Some data may have been lost. "
-          "****",
-          dbname_.c_str(), static_cast<int>(tables_.size()), bytes);
+          L"**** Repaired leveldb %ls; "
+          L"recovered %d files; %llu bytes. "
+          L"Some data may have been lost. "
+          L"****",
+          dbname_.generic_wstring().c_str(), static_cast<int>(tables_.size()),
+          bytes);
     }
     return status;
   }
@@ -134,7 +135,7 @@ class Repairer {
       std::filesystem::path logname = LogFileName(dbname_, logs_[i]);
       Status status = ConvertLogToTable(logs_[i]);
       if (!status.ok()) {
-        Log(options_.info_log, "Log #%llu: ignoring conversion error: %s",
+        Log(options_.info_log, L"Log #%llu: ignoring conversion error: %s",
             (unsigned long long)logs_[i], status.ToString().c_str());
       }
       ArchiveFile(logname);
@@ -148,7 +149,7 @@ class Repairer {
       uint64_t lognum;
       void Corruption(size_t bytes, const Status& s) override {
         // We print error messages for corruption, but continue repairing.
-        Log(info_log, "Log #%llu: dropping %d bytes; %s",
+        Log(info_log, L"Log #%llu: dropping %d bytes; %s",
             (unsigned long long)lognum, static_cast<int>(bytes),
             s.ToString().c_str());
       }
@@ -192,7 +193,7 @@ class Repairer {
       if (status.ok()) {
         counter += WriteBatchInternal::Count(&batch);
       } else {
-        Log(options_.info_log, "Log #%llu: ignoring %s",
+        Log(options_.info_log, L"Log #%llu: ignoring %s",
             (unsigned long long)log, status.ToString().c_str());
         status = Status::OK();  // Keep going with rest of file
       }
@@ -213,7 +214,7 @@ class Repairer {
         table_numbers_.push_back(meta.number);
       }
     }
-    Log(options_.info_log, "Log #%llu: %d ops saved to Table #%llu %s",
+    Log(options_.info_log, L"Log #%llu: %d ops saved to Table #%llu %s",
         (unsigned long long)log, counter, (unsigned long long)meta.number,
         status.ToString().c_str());
     return status;
@@ -249,7 +250,7 @@ class Repairer {
     if (!status.ok()) {
       ArchiveFile(TableFileName(dbname_, number));
       ArchiveFile(SSTTableFileName(dbname_, number));
-      Log(options_.info_log, "Table #%llu: dropped: %s",
+      Log(options_.info_log, L"Table #%llu: dropped: %s",
           (unsigned long long)t.meta.number, status.ToString().c_str());
       return;
     }
@@ -263,7 +264,7 @@ class Repairer {
     for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
       Slice key = iter->key();
       if (!ParseInternalKey(key, &parsed)) {
-        Log(options_.info_log, "Table #%llu: unparsable key %s",
+        Log(options_.info_log, L"Table #%llu: unparsable key %s",
             (unsigned long long)t.meta.number, EscapeString(key).c_str());
         continue;
       }
@@ -282,7 +283,7 @@ class Repairer {
       status = iter->status();
     }
     delete iter;
-    Log(options_.info_log, "Table #%llu: %d entries %s",
+    Log(options_.info_log, L"Table #%llu: %d entries %s",
         (unsigned long long)t.meta.number, counter, status.ToString().c_str());
 
     if (status.ok()) {
@@ -336,7 +337,7 @@ class Repairer {
       std::filesystem::path orig = TableFileName(dbname_, t.meta.number);
       s = env_->RenameFile(copy, orig);
       if (s.ok()) {
-        Log(options_.info_log, "Table #%llu: %d entries repaired",
+        Log(options_.info_log, L"Table #%llu: %d entries repaired",
             (unsigned long long)t.meta.number, counter);
         tables_.push_back(t);
       }
@@ -419,7 +420,8 @@ class Repairer {
     path new_file = destination / name;
     env_->CreateDir(destination);  // Ignore error
     Status s = env_->RenameFile(fname, new_file);
-    Log(options_.info_log, "Archiving %s: %s\n", fname.c_str(),
+    Log(options_.info_log, L"Archiving %ls: %s\n",
+        fname.generic_wstring().c_str(),
         s.ToString().c_str());
   }
 

@@ -827,7 +827,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
         s = descriptor_file_->Sync();
       }
       if (!s.ok()) {
-        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
+        Log(options_->info_log, L"MANIFEST write: %s\n", s.ToString().c_str());
       }
     }
 
@@ -985,7 +985,7 @@ Status VersionSet::Recover(bool* save_manifest) {
     }
   } else {
     std::string error = s.ToString();
-    Log(options_->info_log, "Error recovering version set with %d records: %s",
+    Log(options_->info_log, L"Error recovering version set with %d records: %s",
         read_records, error.c_str());
   }
 
@@ -1012,12 +1012,13 @@ bool VersionSet::ReuseManifest(const std::filesystem::path& dscname,
   assert(descriptor_log_ == nullptr);
   Status r = env_->NewAppendableFile(dscname, &descriptor_file_);
   if (!r.ok()) {
-    Log(options_->info_log, "Reuse MANIFEST: %s\n", r.ToString().c_str());
+    Log(options_->info_log, L"Reuse MANIFEST: %s\n", r.ToString().c_str());
     assert(descriptor_file_ == nullptr);
     return false;
   }
 
-  Log(options_->info_log, "Reusing MANIFEST %s\n", dscname.c_str());
+  Log(options_->info_log, L"Reusing MANIFEST %ls\n",
+      dscname.generic_wstring().c_str());
   descriptor_log_ = new log::Writer(descriptor_file_, manifest_size);
   manifest_file_number_ = manifest_number;
   return true;
@@ -1418,7 +1419,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
       AddBoundaryInputs(icmp_, current_->files_[level + 1], &expanded1);
       if (expanded1.size() == c->inputs_[1].size()) {
         Log(options_->info_log,
-            "Expanding@%d %d+%d (%ld+%ld bytes) to %d+%d (%ld+%ld bytes)\n",
+            L"Expanding@%d %d+%d (%ld+%ld bytes) to %d+%d (%ld+%ld bytes)\n",
             level, int(c->inputs_[0].size()), int(c->inputs_[1].size()),
             long(inputs0_size), long(inputs1_size), int(expanded0.size()),
             int(expanded1.size()), long(expanded0_size), long(inputs1_size));
