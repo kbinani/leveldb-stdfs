@@ -54,10 +54,11 @@ class WindowsLogger final : public Logger {
           (iteration == 0) ? stack_buffer : new wchar_t[dynamic_buffer_size];
 
       // Print the header into the buffer.
-      int buffer_offset = _snwprintf(
-          buffer, buffer_size, L"%04d/%02d/%02d-%02d:%02d:%02d.%06d %s ",
-          now_components.wYear, now_components.wMonth, now_components.wDay,
-          now_components.wHour, now_components.wMinute, now_components.wSecond,
+      int buffer_offset = _snwprintf_s(
+          buffer, buffer_size, _TRUNCATE,
+          L"%04d/%02d/%02d-%02d:%02d:%02d.%06d %s ", now_components.wYear,
+          now_components.wMonth, now_components.wDay, now_components.wHour,
+          now_components.wMinute, now_components.wSecond,
           static_cast<int>(now_components.wMilliseconds * 1000),
           thread_id.c_str());
 
@@ -73,8 +74,8 @@ class WindowsLogger final : public Logger {
       std::va_list arguments_copy;
       va_copy(arguments_copy, arguments);
       buffer_offset +=
-          _vsnwprintf(buffer + buffer_offset, buffer_size - buffer_offset,
-                         format, arguments_copy);
+          _vsnwprintf_s(buffer + buffer_offset, buffer_size - buffer_offset,
+                        _TRUNCATE, format, arguments_copy);
       va_end(arguments_copy);
 
       // The code below may append a newline at the end of the buffer, which
