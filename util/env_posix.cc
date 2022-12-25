@@ -2,6 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#ifndef __Fuchsia__
+#include <sys/resource.h>
+#endif
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <atomic>
 #include <cerrno>
 #include <cstddef>
@@ -9,21 +20,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <dirent.h>
-#include <fcntl.h>
 #include <limits>
-#include <pthread.h>
 #include <queue>
 #include <set>
 #include <string>
-#include <sys/mman.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <thread>
 #include <type_traits>
-#include <unistd.h>
 #include <utility>
 
 #include "leveldb/env.h"
@@ -72,7 +74,14 @@ Status PosixError(const std::string& context, int error_number) {
 class Limiter {
  public:
   // Limit maximum number of resources to |max_acquires|.
-  Limiter(int max_acquires) : acquires_allowed_(max_acquires) {}
+  Limiter(int max_acquires)
+      :
+#if !defined(NDEBUG)
+        max_acquires_(max_acquires),
+#endif  // !defined(NDEBUG)
+        acquires_allowed_(max_acquires) {
+    assert(max_acquires >= 0);
+  }
 
   Limiter(const Limiter&) = delete;
   Limiter operator=(const Limiter&) = delete;
@@ -85,15 +94,35 @@ class Limiter {
 
     if (old_acquires_allowed > 0) return true;
 
-    acquires_allowed_.fetch_add(1, std::memory_order_relaxed);
+    int pre_increment_acquires_allowed =
+        acquires_allowed_.fetch_add(1, std::memory_order_relaxed);
+
+    // Silence compiler warnings about unused arguments when NDEBUG is defined.
+    (void)pre_increment_acquires_allowed;
+    // If the check below fails, Release() was called more times than acquire.
+    assert(pre_increment_acquires_allowed < max_acquires_);
+
     return false;
   }
 
   // Release a resource acquired by a previous call to Acquire() that returned
   // true.
-  void Release() { acquires_allowed_.fetch_add(1, std::memory_order_relaxed); }
+  void Release() {
+    int old_acquires_allowed =
+        acquires_allowed_.fetch_add(1, std::memory_order_relaxed);
+
+    // Silence compiler warnings about unused arguments when NDEBUG is defined.
+    (void)old_acquires_allowed;
+    // If the check below fails, Release() was called more times than acquire.
+    assert(old_acquires_allowed < max_acquires_);
+  }
 
  private:
+#if !defined(NDEBUG)
+  // Catches an excessive number of Release() calls.
+  const int max_acquires_;
+#endif  // !defined(NDEBUG)
+
   // The number of available resources.
   //
   // This is a counter and is not tied to the invariants of any other class, so
@@ -108,7 +137,7 @@ class Limiter {
 class PosixSequentialFile final : public SequentialFile {
  public:
   PosixSequentialFile(std::string filename, int fd)
-      : fd_(fd), filename_(filename) {}
+      : fd_(fd), filename_(std::move(filename)) {}
   ~PosixSequentialFile() override { close(fd_); }
 
   Status Read(size_t n, Slice* result, char* scratch) override {
@@ -214,7 +243,7 @@ class PosixMmapReadableFile final : public RandomAccessFile {
   // over the ownership of the region.
   //
   // |mmap_limiter| must outlive this instance. The caller must have already
-  // aquired the right to use one mmap region, which will be released when this
+  // acquired the right to use one mmap region, which will be released when this
   // instance is destroyed.
   PosixMmapReadableFile(std::string filename, char* mmap_base, size_t length,
                         Limiter* mmap_limiter)
@@ -733,7 +762,7 @@ class PosixEnv : public Env {
   // Instances are constructed on the thread calling Schedule() and used on the
   // background thread.
   //
-  // This structure is thread-safe beacuse it is immutable.
+  // This structure is thread-safe because it is immutable.
   struct BackgroundWorkItem {
     explicit BackgroundWorkItem(void (*function)(void* arg), void* arg)
         : function(function), arg(arg) {}
@@ -762,6 +791,10 @@ int MaxOpenFiles() {
   if (g_open_read_only_file_limit >= 0) {
     return g_open_read_only_file_limit;
   }
+#ifdef __Fuchsia__
+  // Fuchsia doesn't implement getrlimit.
+  g_open_read_only_file_limit = 50;
+#else
   struct ::rlimit rlim;
   if (::getrlimit(RLIMIT_NOFILE, &rlim)) {
     // getrlimit failed, fallback to hard-coded default.
@@ -772,6 +805,7 @@ int MaxOpenFiles() {
     // Allow use of 20% of available file descriptors for read-only files.
     g_open_read_only_file_limit = rlim.rlim_cur / 5;
   }
+#endif
   return g_open_read_only_file_limit;
 }
 
