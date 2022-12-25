@@ -69,7 +69,7 @@ static bool FLAGS_use_existing_db = false;
 static bool FLAGS_compression = true;
 
 // Use the db with the following name.
-static const char* FLAGS_db = nullptr;
+static std::filesystem::path FLAGS_db;
 
 inline static void DBSynchronize(kyotocabinet::TreeDB* db_) {
   // Synchronize will flush writes to disk
@@ -298,17 +298,16 @@ class Benchmark {
         reads_(FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads),
         bytes_(0),
         rand_(301) {
-    std::vector<std::string> files;
-    std::string test_dir;
+    std::vector<std::filesystem::path> files;
+    std::filesystem::path test_dir;
     Env::Default()->GetTestDirectory(&test_dir);
-    Env::Default()->GetChildren(test_dir.c_str(), &files);
+    Env::Default()->GetChildren(test_dir, &files);
     if (!FLAGS_use_existing_db) {
       for (int i = 0; i < files.size(); i++) {
         if (Slice(files[i]).starts_with("dbbench_polyDB")) {
-          std::string file_name(test_dir);
-          file_name += "/";
-          file_name += files[i];
-          Env::Default()->RemoveFile(file_name.c_str());
+          std::filesystem::path file_name(test_dir);
+          file_name = file_name / files[i];
+          Env::Default()->RemoveFile(file_name);
         }
       }
     }
@@ -398,7 +397,7 @@ class Benchmark {
     db_ = new kyotocabinet::TreeDB();
     char file_name[100];
     db_num_++;
-    std::string test_dir;
+    std::filesystem::path test_dir;
     Env::Default()->GetTestDirectory(&test_dir);
     std::snprintf(file_name, sizeof(file_name), "%s/dbbench_polyDB-%d.kct",
                   test_dir.c_str(), db_num_);
@@ -484,7 +483,7 @@ class Benchmark {
 }  // namespace leveldb
 
 int main(int argc, char** argv) {
-  std::string default_db_path;
+  std::filesystem::path default_db_path;
   for (int i = 1; i < argc; i++) {
     double d;
     int n;
@@ -518,10 +517,9 @@ int main(int argc, char** argv) {
   }
 
   // Choose a location for the test database if none given with --db=<path>
-  if (FLAGS_db == nullptr) {
+  if (FLAGS_db.empty()) {
     leveldb::Env::Default()->GetTestDirectory(&default_db_path);
-    default_db_path += "/dbbench";
-    FLAGS_db = default_db_path.c_str();
+    FLAGS_db = default_db_path / "dbbench";
   }
 
   leveldb::Benchmark benchmark;
