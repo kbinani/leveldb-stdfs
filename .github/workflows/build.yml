@@ -67,8 +67,8 @@ jobs:
     - name: Install dependencies on Linux
       if: ${{ runner.os == 'Linux' }}
       run: |
-        sudo apt-get update
-        sudo apt-get install libgoogle-perftools-dev libkyotocabinet-dev \
+        sudo apt update
+        sudo apt install -y --no-install-recommends libgoogle-perftools-dev libkyotocabinet-dev \
             libsnappy-dev libsqlite3-dev
 
     - name: Generate build config
