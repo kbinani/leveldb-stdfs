@@ -627,13 +627,15 @@ class WindowsEnv : public Env {
   }
 
   Status GetTestDirectory(std::filesystem::path* result) override {
-    const wchar_t* env = _wgetenv(L"TEST_TMPDIR");
-    if (env && env[0] != '\0') {
-      *result = env;
+    wchar_t wtmp_path[MAX_PATH];
+    size_t count = 0;
+    errno_t err = _wgetenv_s(&count, wtmp_path, L"TEST_TMPDIR");
+    if (err == 0 && wtmp_path[0] != '\0') {
+      std::wstring tpath(wtmp_path);
+      *result = tpath;
       return Status::OK();
     }
 
-    wchar_t wtmp_path[MAX_PATH];
     if (!GetTempPathW(ARRAYSIZE(wtmp_path), wtmp_path)) {
       return WindowsError(L"GetTempPath", ::GetLastError());
     }
@@ -649,8 +651,9 @@ class WindowsEnv : public Env {
 
   Status NewLogger(const std::filesystem::path& filename,
                    Logger** result) override {
-    std::FILE* fp = _wfopen(filename.c_str(), L"wN");
-    if (fp == nullptr) {
+    std::FILE* fp = nullptr;
+    errno_t err = _wfopen_s(&fp, filename.c_str(), L"wN");
+    if (err != 0 || fp == nullptr) {
       *result = nullptr;
       return WindowsError(filename, ::GetLastError());
     } else {
