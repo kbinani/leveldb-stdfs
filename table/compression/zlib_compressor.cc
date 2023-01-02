@@ -25,7 +25,7 @@ static void Free(voidpf opaque, voidpf address) {
 #if defined(MI_MALLOC_VERSION)
   mi_free(address);
 #else
-  return free(address);
+  free(address);
 #endif
 }
 
@@ -44,6 +44,7 @@ void ZlibCompressorBase::compress(const char* input, size_t length,
   strm.avail_out = buffer.size();
   strm.zalloc = Alloc;
   strm.zfree = Free;
+  strm.opaque = nullptr;
 
   auto res = deflateInit2(&strm, compressionLevel, Z_DEFLATED, _window(), 8,
                           Z_DEFAULT_STRATEGY);
@@ -74,6 +75,7 @@ int ZlibCompressorBase::inflate(const char* input, size_t length,
   strm.next_in = (Bytef*)input;
   strm.zalloc = Alloc;
   strm.zfree = Free;
+  strm.opaque = nullptr;
 
   ret = inflateInit2(&strm, _window());
 
