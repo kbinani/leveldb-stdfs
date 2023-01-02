@@ -111,8 +111,6 @@ check_cxx_compiler_flag(-Wno-missing-field-initializers
 
 include(CheckCXXSourceCompiles)
 
-add_subdirectory(third_party/mimalloc EXCLUDE_FROM_ALL)
-
 # Test whether C++17 __has_include is available.
 check_cxx_source_compiles("
 #if defined(__has_include) &&  __has_include(<string>)
@@ -330,7 +328,13 @@ add_executable(leveldbutil
 )
 target_link_libraries(leveldbutil leveldb)
 
-target_link_libraries(leveldb mimalloc-static)
+if (NOT LEVELDB_INSTALL AND HAVE_ZLIB)
+  # TODO(kbinani): Remove this "if (NOT LEVELDB_INSTALL)"
+  # CMake Error: install(EXPORT "leveldbTargets" ...) includes target "leveldb" which requires target "mimalloc-static" that is not in this export set, but in multiple other export sets: lib/cmake/mimalloc-2.0/mimalloc.cmake, lib/cmake/mimalloc-2.0/mimalloc.cmake.
+  # An exported target cannot depend upon another target which is exported multiple times. Consider consolidating the exports of the "mimalloc-static" target to a single export.
+  add_subdirectory(third_party/mimalloc EXCLUDE_FROM_ALL)
+  target_link_libraries(leveldb mimalloc-static)
+endif()
 
 if(LEVELDB_BUILD_TESTS)
   enable_testing()

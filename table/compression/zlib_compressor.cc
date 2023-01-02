@@ -4,17 +4,30 @@
 
 #include <algorithm>
 #include <zlib.h>
+
+#if __has_include(<mimalloc.h>)
 #include <mimalloc.h>
+#endif
 
 #include "table/compression/zlib_compressor.h"
 
 namespace leveldb {
 
 static voidpf Alloc(voidpf opaque, uInt items, uInt size) {
+#if defined(MI_MALLOC_VERSION)
   return mi_malloc(items * size);
+#else
+  return malloc(items * size);
+#endif
 }
 
-static void Free(voidpf opaque, voidpf address) { mi_free(address); }
+static void Free(voidpf opaque, voidpf address) {
+#if defined(MI_MALLOC_VERSION)
+  mi_free(address);
+#else
+  return free(address);
+#endif
+}
 
 void ZlibCompressorBase::compress(const char* input, size_t length,
                                   ::std::string& buffer) const {
