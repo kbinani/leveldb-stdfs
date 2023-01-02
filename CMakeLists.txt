@@ -111,6 +111,8 @@ check_cxx_compiler_flag(-Wno-missing-field-initializers
 
 include(CheckCXXSourceCompiles)
 
+add_subdirectory(third_party/mimalloc EXCLUDE_FROM_ALL)
+
 # Test whether C++17 __has_include is available.
 check_cxx_source_compiles("
 #if defined(__has_include) &&  __has_include(<string>)
@@ -327,6 +329,8 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
+
+target_link_libraries(leveldb mimalloc-static)
 
 if(LEVELDB_BUILD_TESTS)
   enable_testing()

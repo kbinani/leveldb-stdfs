@@ -4,10 +4,17 @@
 
 #include <algorithm>
 #include <zlib.h>
+#include <mimalloc.h>
 
 #include "table/compression/zlib_compressor.h"
 
 namespace leveldb {
+
+static voidpf Alloc(voidpf opaque, uInt items, uInt size) {
+  return mi_malloc(items * size);
+}
+
+static void Free(voidpf opaque, voidpf address) { mi_free(address); }
 
 void ZlibCompressorBase::compress(const char* input, size_t length,
                                   ::std::string& buffer) const {
@@ -22,6 +29,8 @@ void ZlibCompressorBase::compress(const char* input, size_t length,
   strm.avail_in = (uint32_t)length;
   strm.next_out = (unsigned char*)&buffer[0];
   strm.avail_out = buffer.size();
+  strm.zalloc = Alloc;
+  strm.zfree = Free;
 
   auto res = deflateInit2(&strm, compressionLevel, Z_DEFLATED, _window(), 8,
                           Z_DEFAULT_STRATEGY);
@@ -50,6 +59,8 @@ int ZlibCompressorBase::inflate(const char* input, size_t length,
   strm.opaque = Z_NULL;
   strm.avail_in = (uint32_t)length;
   strm.next_in = (Bytef*)input;
+  strm.zalloc = Alloc;
+  strm.zfree = Free;
 
   ret = inflateInit2(&strm, _window());
 
