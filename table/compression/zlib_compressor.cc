@@ -15,9 +15,9 @@ namespace leveldb {
 
 static voidpf Alloc(voidpf opaque, uInt items, uInt size) {
 #if defined(MI_MALLOC_VERSION)
-  return mi_malloc(items * size);
+  return mi_malloc((size_t)items * size);
 #else
-  return malloc(items * size);
+  return malloc((size_t)items * size);
 #endif
 }
 
