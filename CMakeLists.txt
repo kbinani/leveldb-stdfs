@@ -78,9 +78,9 @@ check_cxx_symbol_exists(O_CLOEXEC "fcntl.h" HAVE_O_CLOEXEC)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # Disable C++ exceptions.
-  # string(REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
-  # add_definitions(-D_HAS_EXCEPTIONS=0)
+  string(REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
+  add_definitions(-D_HAS_EXCEPTIONS=0)
 
   # Disable RTTI.
   string(REGEX REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -92,8 +92,8 @@ else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   endif(NOT CMAKE_C_FLAGS MATCHES "-Wstrict-prototypes")
 
   # Disable C++ exceptions.
-  # string(REGEX REPLACE "-fexceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+  string(REGEX REPLACE "-fexceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
   # Disable RTTI.
   string(REGEX REPLACE "-frtti" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -327,14 +327,6 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT LEVELDB_INSTALL AND HAVE_ZLIB)
-  # TODO(kbinani): Remove this "if (NOT LEVELDB_INSTALL)"
-  # CMake Error: install(EXPORT "leveldbTargets" ...) includes target "leveldb" which requires target "mimalloc-static" that is not in this export set, but in multiple other export sets: lib/cmake/mimalloc-2.0/mimalloc.cmake, lib/cmake/mimalloc-2.0/mimalloc.cmake.
-  # An exported target cannot depend upon another target which is exported multiple times. Consider consolidating the exports of the "mimalloc-static" target to a single export.
-  add_subdirectory(third_party/mimalloc EXCLUDE_FROM_ALL)
-  target_link_libraries(leveldb mimalloc-static)
-endif()
 
 if(LEVELDB_BUILD_TESTS)
   enable_testing()

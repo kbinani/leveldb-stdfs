@@ -5,29 +5,9 @@
 #include <algorithm>
 #include <zlib.h>
 
-#if __has_include(<mimalloc.h>)
-#include <mimalloc.h>
-#endif
-
 #include "table/compression/zlib_compressor.h"
 
 namespace leveldb {
-
-static voidpf Alloc(voidpf opaque, uInt items, uInt size) {
-#if defined(MI_MALLOC_VERSION)
-  return mi_malloc((size_t)items * size);
-#else
-  return malloc((size_t)items * size);
-#endif
-}
-
-static void Free(voidpf opaque, voidpf address) {
-#if defined(MI_MALLOC_VERSION)
-  mi_free(address);
-#else
-  free(address);
-#endif
-}
 
 void ZlibCompressorBase::compress(const char* input, size_t length,
                                   ::std::string& buffer) const {
@@ -42,9 +22,6 @@ void ZlibCompressorBase::compress(const char* input, size_t length,
   strm.avail_in = (uint32_t)length;
   strm.next_out = (unsigned char*)&buffer[0];
   strm.avail_out = buffer.size();
-  strm.zalloc = Alloc;
-  strm.zfree = Free;
-  strm.opaque = nullptr;
 
   auto res = deflateInit2(&strm, compressionLevel, Z_DEFLATED, _window(), 8,
                           Z_DEFAULT_STRATEGY);
@@ -73,9 +50,6 @@ int ZlibCompressorBase::inflate(const char* input, size_t length,
   strm.opaque = Z_NULL;
   strm.avail_in = (uint32_t)length;
   strm.next_in = (Bytef*)input;
-  strm.zalloc = Alloc;
-  strm.zfree = Free;
-  strm.opaque = nullptr;
 
   ret = inflateInit2(&strm, _window());
 
