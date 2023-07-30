@@ -6,26 +6,55 @@ cmake_minimum_required(VERSION 3.9)
 # Keep the version below in sync with the one in db.h
 project(leveldb VERSION 1.23.0 LANGUAGES C CXX)
 
-# C standard can be overridden when this is used as a sub-project.
-if(NOT CMAKE_C_STANDARD)
-  # This project can use C11, but will gracefully decay down to C89.
-  set(CMAKE_C_STANDARD 11)
-  set(CMAKE_C_STANDARD_REQUIRED OFF)
-  set(CMAKE_C_EXTENSIONS OFF)
-endif(NOT CMAKE_C_STANDARD)
+if ("${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
+  # C standard can be overridden when this is used as a sub-project.
+  if(NOT CMAKE_C_STANDARD)
+    # This project can use C11, but will gracefully decay down to C89.
+    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_C_STANDARD_REQUIRED OFF)
+    set(CMAKE_C_EXTENSIONS OFF)
+  endif(NOT CMAKE_C_STANDARD)
 
-# C++ standard can be overridden when this is used as a sub-project.
-if(NOT CMAKE_CXX_STANDARD)
-  # This project requires C++17.
-  set(CMAKE_CXX_STANDARD 17)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-endif(NOT CMAKE_CXX_STANDARD)
+  # C++ standard can be overridden when this is used as a sub-project.
+  if(NOT CMAKE_CXX_STANDARD)
+    # This project requires C++17.
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+  endif(NOT CMAKE_CXX_STANDARD)
+
+  if (WIN32)
+    # TODO(cmumford): Make UNICODE configurable for Windows.
+    add_definitions(-D_UNICODE -DUNICODE)
+  endif()
+
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # Disable C++ exceptions.
+    string(REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
+    add_definitions(-D_HAS_EXCEPTIONS=0)
+
+    # Disable RTTI.
+    string(REGEX REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+  else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # Enable strict prototype warnings for C code in clang and gcc.
+    if(NOT CMAKE_C_FLAGS MATCHES "-Wstrict-prototypes")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
+    endif(NOT CMAKE_C_FLAGS MATCHES "-Wstrict-prototypes")
+
+    # Disable C++ exceptions.
+    # string(REGEX REPLACE "-fexceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+
+    # # Disable RTTI.
+    # string(REGEX REPLACE "-frtti" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+  endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+endif()
 
 if (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_WINDOWS)
-  # TODO(cmumford): Make UNICODE configurable for Windows.
-  add_definitions(-D_UNICODE -DUNICODE)
 else (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_POSIX)
 endif (WIN32)
@@ -51,30 +80,6 @@ include(CheckCXXSymbolExists)
 check_cxx_symbol_exists(fdatasync "unistd.h" HAVE_FDATASYNC)
 check_cxx_symbol_exists(F_FULLFSYNC "fcntl.h" HAVE_FULLFSYNC)
 check_cxx_symbol_exists(O_CLOEXEC "fcntl.h" HAVE_O_CLOEXEC)
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  # Disable C++ exceptions.
-  string(REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
-  add_definitions(-D_HAS_EXCEPTIONS=0)
-
-  # Disable RTTI.
-  string(REGEX REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
-else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  # Enable strict prototype warnings for C code in clang and gcc.
-  if(NOT CMAKE_C_FLAGS MATCHES "-Wstrict-prototypes")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
-  endif(NOT CMAKE_C_FLAGS MATCHES "-Wstrict-prototypes")
-
-  # Disable C++ exceptions.
-  string(REGEX REPLACE "-fexceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
-
-  # Disable RTTI.
-  string(REGEX REPLACE "-frtti" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
 # Test whether -Wthread-safety is available. See
 # https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
@@ -107,11 +112,6 @@ include_directories(
   "${PROJECT_BINARY_DIR}/include"
   "."
 )
-
-if(BUILD_SHARED_LIBS)
-  # Only export LEVELDB_EXPORT symbols from the shared library.
-  add_compile_options(-fvisibility=hidden)
-endif(BUILD_SHARED_LIBS)
 
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
@@ -206,6 +206,11 @@ target_sources(leveldb
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/table.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/write_batch.h"
 )
+
+if(BUILD_SHARED_LIBS)
+  # Only export LEVELDB_EXPORT symbols from the shared library.
+  target_compile_options(leveldb PRIVATE -fvisibility=hidden)
+endif(BUILD_SHARED_LIBS)
 
 if (WIN32)
   target_sources(leveldb
